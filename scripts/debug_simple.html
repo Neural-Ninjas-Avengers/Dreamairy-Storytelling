@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Simple - Cuentos Mágicos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #3498db, #27ae60);
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        button {
+            background: linear-gradient(135deg, #f39c12, #27ae60);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .debug-info {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .status {
+            font-weight: bold;
+            color: #f1c40f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 Debug Simple - Cuentos Mágicos 🌟</h1>
+        
+        <div class="debug-info">
+            <div class="status">Estado del servidor:</div>
+            <div id="serverStatus">Verificando...</div>
+            <br>
+            <div class="status">WebSocket:</div>
+            <div id="wsStatus">No conectado</div>
+            <br>
+            <div class="status">Última acción:</div>
+            <div id="lastAction">Ninguna</div>
+        </div>
+
+        <button onclick="testButton()">🎯 Test Botón</button>
+        <button onclick="testServerConnection()">🔗 Test Servidor</button>
+        <button onclick="testWebSocket()">📡 Test WebSocket</button>
+        <button onclick="startStory()">🎪 Iniciar Historia</button>
+        
+        <div class="debug-info">
+            <div class="status">Log de eventos:</div>
+            <div id="eventLog"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let connectionId = 'debug-' + Math.random().toString(36).substring(2, 11);
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('eventLog');
+            logDiv.innerHTML = `[${timestamp}] ${message}<br>` + logDiv.innerHTML;
+            document.getElementById('lastAction').textContent = message;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function testButton() {
+            log('✅ Botón funciona correctamente');
+            alert('¡El botón funciona!');
+        }
+
+        async function testServerConnection() {
+            log('🔍 Probando conexión al servidor...');
+            try {
+                const response = await fetch('/api/v1/system/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Servidor conectado correctamente');
+                    document.getElementById('serverStatus').textContent = 'Conectado ✅';
+                    document.getElementById('serverStatus').style.color = '#2ecc71';
+                } else {
+                    log('❌ Error del servidor: ' + response.status);
+                    document.getElementById('serverStatus').textContent = 'Error ' + response.status;
+                    document.getElementById('serverStatus').style.color = '#e74c3c';
+                }
+            } catch (error) {
+                log('❌ Error de conexión: ' + error.message);
+                document.getElementById('serverStatus').textContent = 'Sin conexión ❌';
+                document.getElementById('serverStatus').style.color = '#e74c3c';
+            }
+        }
+
+        function testWebSocket() {
+            log('📡 Probando WebSocket...');
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('⚠️ WebSocket ya está conectado');
+                return;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/${connectionId}`;
+            
+            log('🔗 Conectando a: ' + wsUrl);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                log('✅ WebSocket conectado');
+                document.getElementById('wsStatus').textContent = 'Conectado ✅';
+                document.getElementById('wsStatus').style.color = '#2ecc71';
+            };
+            
+            ws.onclose = () => {
+                log('⚠️ WebSocket desconectado');
+                document.getElementById('wsStatus').textContent = 'Desconectado ⚠️';
+                document.getElementById('wsStatus').style.color = '#f39c12';
+            };
+            
+            ws.onerror = (error) => {
+                log('❌ Error WebSocket: ' + error);
+                document.getElementById('wsStatus').textContent = 'Error ❌';
+                document.getElementById('wsStatus').style.color = '#e74c3c';
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                log('📨 Mensaje recibido: ' + message.type);
+            };
+        }
+
+        function startStory() {
+            log('🎪 Iniciando historia...');
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ WebSocket no conectado. Conectando primero...');
+                testWebSocket();
+                setTimeout(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        createSession();
+                    } else {
+                        log('❌ No se pudo conectar WebSocket');
+                    }
+                }, 2000);
+            } else {
+                createSession();
+            }
+        }
+
+        function createSession() {
+            log('🎭 Creando sesión...');
+            
+            const sessionData = {
+                type: 'session_create',
+                data: {
+                    age: 6,
+                    preferences: ['animals', 'adventure'],
+                    emotional_goal: 'entertain'
+                }
+            };
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(sessionData));
+                log('📤 Datos de sesión enviados');
+            } else {
+                log('❌ WebSocket no disponible para enviar datos');
+            }
+        }
+
+        // Auto-test al cargar la página
+        window.onload = function() {
+            log('🚀 Página cargada - iniciando tests automáticos');
+            setTimeout(testServerConnection, 1000);
+        };
+    </script>
+</body>
+</html>

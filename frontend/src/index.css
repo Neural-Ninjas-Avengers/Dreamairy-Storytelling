@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .font-poppins {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-coral-400 to-coral-600 text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-forest-400 to-forest-600 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300;
+  }
+  
+  .emotion-card {
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer;
+  }
+  
+  .emotion-card.selected {
+    @apply ring-4 ring-coral-400 bg-coral-50;
+  }
+  
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl;
+  }
+}
+
+@layer utilities {
+  .border-l-3 {
+    border-left-width: 3px;
+  }
+  
+  .border-r-3 {
+    border-right-width: 3px;
+  }
+  
+  .border-t-5 {
+    border-top-width: 5px;
+  }
+  
+  .border-l-5 {
+    border-left-width: 5px;
+  }
+  
+  .border-r-5 {
+    border-right-width: 5px;
+  }
+  
+  .border-t-8 {
+    border-top-width: 8px;
+  }
+}

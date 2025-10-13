@@ -1,0 +1,8 @@
+@echo off
+echo Setting up AWS credentials for DreamAIry...
+set AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_HERE
+set AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_KEY_HERE
+set AWS_DEFAULT_REGION=eu-west-1
+echo AWS credentials configured
+echo Starting DreamAIry backend...
+python backend/app.py

@@ -1,0 +1,962 @@
+/* Admin Dashboard Styles */
+
+.admin-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-dashboard.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  color: white;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+/* Header */
+.admin-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-to-app-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.back-to-app-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.admin-header h1 {
+  color: white;
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.environment-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.environment-badge .env-demo {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.environment-badge .env-staging {
+  color: #FF9800;
+  font-weight: bold;
+}
+
+.environment-badge .env-production {
+  color: #F44336;
+  font-weight: bold;
+}
+
+/* Navigation */
+.admin-nav {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0 2rem;
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-nav button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.admin-nav button:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.admin-nav button.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom-color: #4CAF50;
+}
+
+/* Content */
+.admin-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tab-content h2 {
+  color: white;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Overview Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.overview-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.overview-card h3 {
+  color: white;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.overview-card p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Environment Status */
+.environment-status {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.environment-status.env-demo {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.environment-status.env-staging {
+  background: rgba(255, 152, 0, 0.2);
+  color: #FF9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.environment-status.env-production {
+  background: rgba(244, 67, 54, 0.2);
+  color: #F44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* AWS Status */
+.aws-status {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.aws-status.enabled {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.aws-status.disabled {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9E9E9E;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+/* Services List */
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.service-status {
+  font-size: 1.2rem;
+}
+
+.service-name {
+  color: white;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.service-provider {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-btn.backup {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.action-btn.test {
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.action-btn.refresh {
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+/* AWS Config Form */
+.aws-config-form {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: white;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border: none;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Current Config */
+.current-config {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.current-config h3 {
+  color: white;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.config-item {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.config-item strong {
+  color: white;
+}
+
+.config-item .enabled {
+  color: #4CAF50;
+}
+
+.config-item .disabled {
+  color: #9E9E9E;
+}
+
+/* Environment Selector */
+.environment-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.env-option {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.env-option h3 {
+  color: white;
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+}
+
+.env-option p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.env-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.env-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.env-btn.active {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border-color: #4CAF50;
+}
+
+.env-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Testing Section */
+.testing-section {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.test-all-btn {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  border: none;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.test-all-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.test-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.warning {
+  color: #FF9800;
+  background: rgba(255, 152, 0, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  margin-bottom: 1rem;
+}
+
+/* Test Results */
+.test-results {
+  margin-top: 2rem;
+}
+
+.test-results h3 {
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.overall-status {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.overall-status.passed {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.overall-status.failed {
+  background: rgba(244, 67, 54, 0.2);
+  color: #F44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.service-tests {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.test-result {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.test-result.success {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.test-result.failure {
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.test-result h4 {
+  color: white;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.test-status {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.test-result.success .test-status {
+  color: #4CAF50;
+}
+
+.test-result.failure .test-status {
+  color: #F44336;
+}
+
+.test-metric,
+.test-output {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.test-error {
+  color: #F44336;
+  font-size: 0.9rem;
+  background: rgba(244, 67, 54, 0.1);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+/* Monitoring Grid */
+.monitoring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.monitoring-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.monitoring-card h3 {
+  color: white;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.health-indicator {
+  font-size: 1.2rem;
+}
+
+.health-details {
+  flex: 1;
+}
+
+.health-details .service-name {
+  color: white;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.health-details .service-info {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+}
+
+.config-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.info-item strong {
+  color: white;
+}
+
+.system-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .admin-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admin-nav button {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-content {
+    padding: 1rem;
+  }
+
+  .overview-grid,
+  .environment-selector,
+  .service-tests,
+  .monitoring-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Environm
+ent Management Styles */
+.environment-section {
+  max-width: 1200px;
+}
+
+.current-environment {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.environment-options {
+  margin-bottom: 2rem;
+}
+
+.environment-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.env-card {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.env-card.active {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.env-card h4 {
+  margin: 0 0 0.5rem 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.env-card p {
+  margin: 0 0 1rem 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.env-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.env-card li {
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.env-switch-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.env-switch-btn.demo {
+  background: #28a745;
+  color: white;
+}
+
+.env-switch-btn.staging {
+  background: #ffc107;
+  color: #333;
+}
+
+.env-switch-btn.production {
+  background: #dc3545;
+  color: white;
+}
+
+.env-switch-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.env-switch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.environment-warning {
+  background: rgba(255, 243, 205, 0.1);
+  border: 1px solid rgba(255, 234, 167, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.environment-warning h3 {
+  margin: 0 0 1rem 0;
+  color: #ffc107;
+}
+
+.environment-warning ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.environment-warning li {
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Testing Section Styles */
+.testing-section {
+  max-width: 800px;
+}
+
+.test-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.test-btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 200px;
+}
+
+.test-btn.aws-test {
+  background: #007bff;
+  color: white;
+}
+
+.test-btn.story-test {
+  background: #28a745;
+  color: white;
+}
+
+.test-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.test-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.test-results {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.test-results h3 {
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.test-results pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Monitoring Section Styles */
+.monitoring-section {
+  max-width: 1000px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.status-card {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.status-card.healthy {
+  border-color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.status-card.unhealthy {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.status-card h4 {
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.status-indicator {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.status-indicator.healthy {
+  color: #28a745;
+}
+
+.status-indicator.unhealthy {
+  color: #dc3545;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.refresh-btn {
+  padding: 0.75rem 2rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-2px);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design for New Components */
+@media (max-width: 768px) {
+  .environment-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .test-controls {
+    flex-direction: column;
+  }
+  
+  .test-btn {
+    min-width: auto;
+  }
+  
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+}

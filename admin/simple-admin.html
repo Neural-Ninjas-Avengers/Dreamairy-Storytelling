@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 DreamAIry Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; min-height: 100vh; padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .header h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; }
+        .card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 2rem; border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn {
+            background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;
+            padding: 1rem 1.5rem; border-radius: 10px; font-size: 1rem; cursor: pointer;
+            margin: 0.5rem; transition: all 0.3s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .status { padding: 1rem; margin: 1rem 0; border-radius: 10px; }
+        .status.success { background: rgba(16, 185, 129, 0.2); }
+        .status.error { background: rgba(239, 68, 68, 0.2); }
+        .log { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; height: 200px; overflow-y: auto; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 DreamAIry Admin Panel</h1>
+            <p>Simple Control Center</p>
+            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; margin-top: 1rem; font-size: 0.9rem;">
+                <strong>📋 Instructions:</strong><br>
+                1. First start the Control Server: <code>python admin/control_server.py</code><br>
+                2. Or use the launcher: <code>python start_dreamairy.py</code> → Option 4<br>
+                3. Then use the buttons below to control services
+            </div>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <h3>🐍 Backend Control</h3>
+                <div id="backendStatus" class="status">Status: Checking...</div>
+                <button class="btn" onclick="startBackend()">🚀 Start</button>
+                <button class="btn btn-danger" onclick="stopBackend()">🛑 Stop</button>
+                <button class="btn" onclick="testBackend()">🧪 Test</button>
+                <button class="btn" onclick="openBackendAPI()">📡 API</button>
+            </div>
+
+            <div class="card">
+                <h3>⚛️ Frontend Control</h3>
+                <div id="frontendStatus" class="status">Status: Checking...</div>
+                <button class="btn" onclick="startFrontend()">🚀 Start</button>
+                <button class="btn btn-danger" onclick="stopFrontend()">🛑 Stop</button>
+                <button class="btn" onclick="openApp()">🌐 App</button>
+                <button class="btn" onclick="openAdmin()">🛠️ Admin</button>
+            </div>
+
+            <div class="card">
+                <h3>🎯 Master Control</h3>
+                <div class="status">Full System Control</div>
+                <button class="btn" onclick="startAll()" style="font-size: 1.2rem; padding: 1.5rem;">🚀 START ALL</button>
+                <button class="btn btn-danger" onclick="stopAll()" style="font-size: 1.2rem; padding: 1.5rem;">🛑 STOP ALL</button>
+            </div>
+
+            <div class="card">
+                <h3>🧪 Quick Tests</h3>
+                <button class="btn" onclick="testImageGeneration()">🎨 Test Images</button>
+                <button class="btn" onclick="testAWSConfig()">☁️ Test AWS</button>
+                <button class="btn" onclick="testStoryGeneration()">📚 Test Stories</button>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h3>📋 System Log</h3>
+            <div id="logContainer" class="log">
+                <div>[INFO] Admin Panel initialized</div>
+            </div>
+            <button class="btn btn-danger" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3001';
+        
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.textContent = `[${time}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        const CONTROL_URL = 'http://localhost:3002/api';
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${CONTROL_URL}/status`);
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Control server not running on port 3002');
+                }
+                
+                const data = await response.json();
+                
+                // Update backend status
+                const backendStatus = document.getElementById('backendStatus');
+                if (data.backend.running) {
+                    backendStatus.className = 'status success';
+                    backendStatus.innerHTML = `Status: ✅ Running (PID: ${data.backend.pid})`;
+                } else {
+                    backendStatus.className = 'status error';
+                    backendStatus.textContent = 'Status: ❌ Stopped';
+                }
+                
+                // Update frontend status
+                const frontendStatus = document.getElementById('frontendStatus');
+                if (data.frontend.running) {
+                    frontendStatus.className = 'status success';
+                    frontendStatus.innerHTML = `Status: ✅ Running (PID: ${data.frontend.pid})`;
+                } else {
+                    frontendStatus.className = 'status error';
+                    frontendStatus.textContent = 'Status: ❌ Stopped';
+                }
+                
+            } catch (error) {
+                addLog(`❌ Status check failed: ${error.message}`);
+                
+                // Update status to show control server is not running
+                document.getElementById('backendStatus').className = 'status error';
+                document.getElementById('backendStatus').textContent = 'Status: ❌ Control Server Not Running';
+                document.getElementById('frontendStatus').className = 'status error';
+                document.getElementById('frontendStatus').textContent = 'Status: ❌ Control Server Not Running';
+            }
+        }
+
+        async function startBackend() {
+            addLog('🐍 Starting backend...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/start/backend`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 2000);
+            } catch (error) {
+                addLog(`❌ Start backend failed: ${error.message}`);
+            }
+        }
+
+        async function stopBackend() {
+            addLog('🛑 Stopping backend...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/stop/backend`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 1000);
+            } catch (error) {
+                addLog(`❌ Stop backend failed: ${error.message}`);
+            }
+        }
+
+        async function startFrontend() {
+            addLog('⚛️ Starting frontend...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/start/frontend`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 5000);
+            } catch (error) {
+                addLog(`❌ Start frontend failed: ${error.message}`);
+            }
+        }
+
+        async function stopFrontend() {
+            addLog('🛑 Stopping frontend...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/stop/frontend`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 1000);
+            } catch (error) {
+                addLog(`❌ Stop frontend failed: ${error.message}`);
+            }
+        }
+
+        async function startAll() {
+            addLog('🚀 Starting all services...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/start/all`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 5000);
+            } catch (error) {
+                addLog(`❌ Start all failed: ${error.message}`);
+            }
+        }
+
+        async function stopAll() {
+            addLog('🛑 Stopping all services...');
+            try {
+                const response = await fetch(`${CONTROL_URL}/stop/all`, { method: 'POST' });
+                const data = await response.json();
+                addLog(data.success ? `✅ ${data.message}` : `❌ ${data.message}`);
+                setTimeout(checkStatus, 2000);
+            } catch (error) {
+                addLog(`❌ Stop all failed: ${error.message}`);
+            }
+        }
+
+        async function testBackend() {
+            addLog('🧪 Testing backend...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                if (response.ok) {
+                    addLog('✅ Backend is healthy');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                addLog(`❌ Backend error: ${error.message}`);
+            }
+        }
+
+        async function testImageGeneration() {
+            addLog('🎨 Testing image generation...');
+            try {
+                // Create session first
+                const sessionResponse = await fetch(`${BACKEND_URL}/api/v1/demo/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ age: 6, preferences: ['animals'], emotional_goal: 'entertain' })
+                });
+                
+                if (!sessionResponse.ok) throw new Error('Session creation failed');
+                
+                const session = await sessionResponse.json();
+                addLog(`✅ Session created: ${session.session_id}`);
+                
+                // Test image generation
+                const imageResponse = await fetch(`${BACKEND_URL}/api/v1/demo/sessions/${session.session_id}/generate-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_description: 'A magical forest with friendly animals',
+                        theme: 'animals',
+                        style: 'children_book',
+                        has_user_photo: false
+                    })
+                });
+                
+                if (!imageResponse.ok) throw new Error('Image generation failed');
+                
+                const result = await imageResponse.json();
+                addLog(`✅ Image generated with: ${result.ai_provider}`);
+                
+            } catch (error) {
+                addLog(`❌ Image test failed: ${error.message}`);
+            }
+        }
+
+        async function testAWSConfig() {
+            addLog('☁️ Testing AWS configuration...');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/v1/admin/config`);
+                if (!response.ok) throw new Error('Admin API not available');
+                
+                const data = await response.json();
+                if (data.success) {
+                    const config = data.config;
+                    addLog(`✅ Config loaded: Environment=${config.environment}`);
+                    addLog(`AWS Enabled: ${config.aws?.enabled ? 'Yes' : 'No'}`);
+                } else {
+                    throw new Error('Config load failed');
+                }
+            } catch (error) {
+                addLog(`❌ AWS config test failed: ${error.message}`);
+            }
+        }
+
+        async function testStoryGeneration() {
+            addLog('📚 Testing story generation...');
+            try {
+                // Create session
+                const sessionResponse = await fetch(`${BACKEND_URL}/api/v1/demo/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ age: 6, preferences: ['animals'], emotional_goal: 'entertain' })
+                });
+                
+                const session = await sessionResponse.json();
+                
+                // Generate story
+                const storyResponse = await fetch(`${BACKEND_URL}/api/v1/demo/sessions/${session.session_id}/story`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: 'animals', segments_so_far: 0, child_age: 6 })
+                });
+                
+                const story = await storyResponse.json();
+                addLog(`✅ Story generated: "${story.text.substring(0, 50)}..."`);
+                
+            } catch (error) {
+                addLog(`❌ Story test failed: ${error.message}`);
+            }
+        }
+
+        function openBackendAPI() { window.open(`${BACKEND_URL}`, '_blank'); }
+        function openApp() { window.open('http://localhost:3000', '_blank'); }
+        function openAdmin() { window.open('http://localhost:3000', '_blank'); }
+        function clearLog() { document.getElementById('logContainer').innerHTML = ''; }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('🎮 DreamAIry Admin Panel loaded');
+            checkStatus(); // Check initial status
+            
+            // Auto-refresh status every 10 seconds
+            setInterval(checkStatus, 10000);
+        });
+    </script>
+</body>
+</html>

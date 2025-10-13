@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Story Generation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .story-output {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            min-height: 100px;
+        }
+        .log-output {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Test AI Story Generation</h1>
+        
+        <div>
+            <h3>Configuración:</h3>
+            <label>Tema: 
+                <select id="theme">
+                    <option value="animals">Animales</option>
+                    <option value="adventure">Aventuras</option>
+                    <option value="fantasy">Fantasía</option>
+                    <option value="friendship">Amistad</option>
+                </select>
+            </label>
+            
+            <label>Edad: 
+                <select id="age">
+                    <option value="4">4 años</option>
+                    <option value="6" selected>6 años</option>
+                    <option value="8">8 años</option>
+                </select>
+            </label>
+            
+            <label>Objetivo: 
+                <select id="emotion">
+                    <option value="entertain" selected>Diversión</option>
+                    <option value="calm">Calma</option>
+                    <option value="stimulate_play">Energía</option>
+                </select>
+            </label>
+        </div>
+        
+        <div>
+            <button onclick="generateStory()">🎭 Generar Historia</button>
+            <button onclick="continueStory()">📖 Continuar Historia</button>
+            <button onclick="clearStory()">🗑️ Limpiar</button>
+        </div>
+        
+        <div class="story-output" id="storyOutput">
+            <em>Haz clic en "Generar Historia" para comenzar...</em>
+        </div>
+        
+        <div class="log-output" id="logOutput">
+            <strong>Logs del sistema:</strong><br>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the AI service
+        import { FreeAIStoryService } from './src/services/FreeAIStoryService.js';
+        
+        let aiService;
+        let currentSession = 'test-session-' + Date.now();
+        let segmentCount = 0;
+        
+        // Initialize service
+        try {
+            aiService = new FreeAIStoryService();
+            log('✅ AI Service initialized successfully');
+        } catch (error) {
+            log('❌ Failed to initialize AI Service: ' + error.message);
+        }
+        
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            log(args.join(' '));
+        };
+        
+        function log(message) {
+            const logOutput = document.getElementById('logOutput');
+            logOutput.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        window.generateStory = async function() {
+            const theme = document.getElementById('theme').value;
+            const age = parseInt(document.getElementById('age').value);
+            const emotion = document.getElementById('emotion').value;
+            
+            const context = {
+                theme: theme,
+                child_age: age,
+                emotional_goal: emotion,
+                segments_so_far: 0
+            };
+            
+            log('🎭 Starting new story generation...');
+            log('Context: ' + JSON.stringify(context));
+            
+            try {
+                const result = await aiService.generateStorySegment(currentSession, context);
+                
+                document.getElementById('storyOutput').innerHTML = 
+                    '<strong>Historia generada:</strong><br><br>' + 
+                    result.text + 
+                    '<br><br><em>Proveedor: ' + result.provider + '</em>' +
+                    '<br><em>Personajes: ' + (result.characters_involved || []).join(', ') + '</em>';
+                
+                segmentCount = 1;
+                log('✅ Story generated successfully');
+                
+            } catch (error) {
+                log('❌ Error generating story: ' + error.message);
+                document.getElementById('storyOutput').innerHTML = 
+                    '<strong>Error:</strong> ' + error.message;
+            }
+        };
+        
+        window.continueStory = async function() {
+            if (segmentCount === 0) {
+                log('⚠️ Generate a story first');
+                return;
+            }
+            
+            const theme = document.getElementById('theme').value;
+            const age = parseInt(document.getElementById('age').value);
+            const emotion = document.getElementById('emotion').value;
+            
+            const context = {
+                theme: theme,
+                child_age: age,
+                emotional_goal: emotion,
+                segments_so_far: segmentCount
+            };
+            
+            log('📖 Continuing story (segment ' + segmentCount + ')...');
+            
+            try {
+                const result = await aiService.generateStorySegment(currentSession, context);
+                
+                const currentContent = document.getElementById('storyOutput').innerHTML;
+                document.getElementById('storyOutput').innerHTML = 
+                    currentContent + 
+                    '<br><br><strong>Continuación:</strong><br><br>' + 
+                    result.text;
+                
+                segmentCount++;
+                log('✅ Story continued successfully');
+                
+            } catch (error) {
+                log('❌ Error continuing story: ' + error.message);
+            }
+        };
+        
+        window.clearStory = function() {
+            document.getElementById('storyOutput').innerHTML = 
+                '<em>Haz clic en "Generar Historia" para comenzar...</em>';
+            currentSession = 'test-session-' + Date.now();
+            segmentCount = 0;
+            aiService.clearStoryContext(currentSession);
+            log('🗑️ Story cleared, new session started');
+        };
+        
+        log('🚀 Test page loaded and ready');
+    </script>
+</body>
+</html>

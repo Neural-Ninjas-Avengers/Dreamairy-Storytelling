@@ -1,0 +1,21 @@
+{
+  "environment": "demo",
+  "aws": {
+    "enabled": false,
+    "region": "eu-west-1",
+    "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID_HERE",
+    "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY_HERE"
+  },
+  "features": {
+    "storyGeneration": true,
+    "imageGeneration": true,
+    "voiceSynthesis": true,
+    "emotionDetection": true
+  },
+  "settings": {
+    "maxStoryLength": 2000,
+    "maxSegments": 15,
+    "defaultLanguage": "es",
+    "defaultVoice": "Lucia"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "dreamairy-storytelling",
+  "version": "1.0.0",
+  "description": "An intelligent storytelling application that creates personalized, interactive stories for children using AI technology",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "install-deps": "npm run install:frontend && npm run install:backend",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "dev": "cd frontend && npm start",
+    "dev:backend": "cd backend && python app.py",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\"",
+    "lint": "cd frontend && npm run lint",
+    "format": "cd frontend && npm run format"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neural-Ninjas-Avengers/dreamairy-storytelling.git"
+  },
+  "keywords": [
+    "ai",
+    "storytelling",
+    "children",
+    "react",
+    "adaptive",
+    "personalized",
+    "education",
+    "interactive",
+    "emotion-detection",
+    "multilingual"
+  ],
+  "author": "Neural Ninjas Avengers",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Neural-Ninjas-Avengers/dreamairy-storytelling/issues"
+  },
+  "homepage": "https://github.com/Neural-Ninjas-Avengers/dreamairy-storytelling#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

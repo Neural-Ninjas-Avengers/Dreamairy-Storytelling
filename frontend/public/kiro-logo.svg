@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Placeholder SVG - Replace with actual fox logo -->
+  <circle cx="100" cy="100" r="90" fill="#FF8C42"/>
+  <circle cx="100" cy="100" r="70" fill="#FFB366"/>
+  
+  <!-- Fox ears -->
+  <ellipse cx="75" cy="60" rx="15" ry="25" fill="#FF8C42" transform="rotate(-20 75 60)"/>
+  <ellipse cx="125" cy="60" rx="15" ry="25" fill="#FF8C42" transform="rotate(20 125 60)"/>
+  
+  <!-- Fox face -->
+  <ellipse cx="100" cy="110" rx="50" ry="40" fill="#FFD4A3"/>
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="100" r="8" fill="#8B4513"/>
+  <circle cx="115" cy="100" r="8" fill="#8B4513"/>
+  <circle cx="87" cy="98" r="3" fill="#FFF"/>
+  <circle cx="117" cy="98" r="3" fill="#FFF"/>
+  
+  <!-- Nose -->
+  <ellipse cx="100" cy="115" rx="4" ry="3" fill="#8B4513"/>
+  
+  <!-- Mouth -->
+  <path d="M 100 120 Q 90 130 85 125" stroke="#8B4513" stroke-width="2" fill="none"/>
+  <path d="M 100 120 Q 110 130 115 125" stroke="#8B4513" stroke-width="2" fill="none"/>
+</svg>

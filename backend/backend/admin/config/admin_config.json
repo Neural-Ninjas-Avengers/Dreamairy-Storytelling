@@ -1,0 +1,60 @@
+{
+  "environment": "production",
+  "aws": {
+    "enabled": true,
+    "credentials": "Z0FBQUFBQm83TFFDMzAtbDdMSFpEQXJXLUY3eU1ENGk1azRQUVo2LXFraTZ1b1lLTVdRZUkxckpzY1lPYTdQTWVUWmJJeGJSNkdVcy0wSUtfMlIyTHpEdkRSR3czcDltZ3N0alV0eUFFM1JYWDJWbEJLMXlZVHpITy1WV1ZHT0lIUklPcWg5ZWlKcGNhOXAwUTN0YUNSZm45cmZTMkRQY0ljQ0FFNmJLeXBFblVtdDlHNHhseF85Q3lWMWtsZk9PRnV6VnphTmFXUnJJVTU1eS1KVl9mb2FfQThTaUVzR0hoWlVHenR3M0pqVWNFMGJZVTFia0g2VT0=",
+    "region": "eu-west-1",
+    "services": {
+      "bedrock": {
+        "enabled": true,
+        "modelId": "amazon.titan-text-express-v1",
+        "maxTokens": 1000,
+        "temperature": 0.7,
+        "imageModelId": "amazon.titan-image-generator-v1"
+      },
+      "polly": {
+        "enabled": false,
+        "voiceId": "Joanna",
+        "engine": "neural",
+        "languageCode": "en-US"
+      },
+      "rekognition": {
+        "enabled": false,
+        "confidenceThreshold": 80,
+        "maxFaces": 10
+      },
+      "s3": {
+        "enabled": false,
+        "bucketName": "",
+        "region": "us-east-1"
+      },
+      "dynamodb": {
+        "enabled": false,
+        "tableName": "DreamAIry-Sessions",
+        "region": "us-east-1"
+      }
+    }
+  },
+  "fallbacks": {
+    "huggingface": {
+      "enabled": true,
+      "apiKey": null
+    },
+    "pollinations": {
+      "enabled": true,
+      "rateLimit": 10
+    }
+  },
+  "security": {
+    "dataRetentionDays": 30,
+    "encryptionEnabled": true,
+    "auditLogging": true
+  },
+  "monitoring": {
+    "healthChecks": true,
+    "costAlerts": true,
+    "costLimit": 100.0
+  },
+  "lastUpdated": "2025-10-13T10:10:42.749323",
+  "version": "1.0.0"
+}

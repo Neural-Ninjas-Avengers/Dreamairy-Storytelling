@@ -1,0 +1,262 @@
+# DreamAIry - Professional .gitignore
+
+# ============================================
+# AWS Credentials & Secrets
+# ============================================
+*.pem
+*.key
+*.secret
+.env
+.env.local
+.env.production
+backend/admin/config/admin_config.json
+aws_credentials.json
+credentials.json
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytype/
+cython_debug/
+
+# ============================================
+# Virtual Environments
+# ============================================
+venv/
+ENV/
+env/
+.venv
+env.bak/
+venv.bak/
+
+# ============================================
+# Node / Frontend
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# ============================================
+# React / Frontend Build
+# ============================================
+frontend/build/
+frontend/dist/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/coverage/
+
+# ============================================
+# IDEs and Editors
+# ============================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+*.code-workspace
+
+# ============================================
+# Kiro IDE
+# ============================================
+.kiro/cache/
+.kiro/logs/
+.kiro/temp/
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output
+.grunt
+bower_components
+.lock-wscript
+test-results/
+junit.xml
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+.cache/
+tmp/
+temp/
+
+# ============================================
+# Database
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ============================================
+# Media Files (Large)
+# ============================================
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+# Keep small test images
+!test_*.jpg
+!test_*.png
+
+# ============================================
+# Documentation Build
+# ============================================
+docs/_build/
+docs/.doctrees/
+site/
+
+# ============================================
+# Backup Files
+# ============================================
+*.backup
+*.old
+*_backup
+*_old
+
+# ============================================
+# Project Specific
+# ============================================
+# Keep example configs but ignore actual configs
+!backend/admin/config/admin_config.example.json
+
+# Test and Debug Files (Development Only)
+test_*.py
+debug_*.py
+check_*.py
+*_test.py
+
+# Test output files
+test_output/
+*.test.json
+
+# Generated files
+generated/
+output/
+
+# Session data
+sessions/
+*.session
+
+# Development Scripts and Files
+start_simple.py
+setup_aws_credentials.py
+aws_setup_simple.py
+control_panel.html
+admin_panel_working.html
+start_control_server.py
+start_control_server.bat
+start_backend_from_panel.bat
+start_frontend_from_panel.bat
+cleanup_for_git.py
+start_with_aws.bat
+
+# Development Documentation (Keep only production docs)
+AWS_SOLUTION.md
+AWS_ULTRA_SAFE_APPROACH.md
+AVATAR_IMPLEMENTATION.md
+AVATAR_ENHANCEMENT_SUMMARY.md
+ENHANCED_AVATAR_SYSTEM_SUMMARY.md
+CLEANUP_SUMMARY.md
+PREPARE_FOR_GIT.md
+PROJECT_SUMMARY.md
+SETUP.md
+
+# ============================================
+# Keep Important Files
+# ============================================
+!.gitignore
+!.gitattributes
+!README.md
+!LICENSE
+!CONTRIBUTING.md

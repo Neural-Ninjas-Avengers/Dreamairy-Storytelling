@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #f0f0f0;
+        }
+        
+        .debug-section {
+            background: white;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        #log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Demo Interface</h1>
+    
+    <div class="debug-section">
+        <h2>Connection Test</h2>
+        <button onclick="testConnection()">Test WebSocket Connection</button>
+        <button onclick="testCreateSession()">Test Create Session</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Variables</h2>
+        <p>Selected Age: <span id="ageDisplay">6</span></p>
+        <p>Selected Emotion: <span id="emotionDisplay">entertain</span></p>
+        <p>WebSocket State: <span id="wsState">Not connected</span></p>
+        <p>Session ID: <span id="sessionDisplay">None</span></p>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Debug Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let sessionId = null;
+        let selectedAge = 6;
+        let selectedEmotion = 'entertain';
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function updateDisplay() {
+            document.getElementById('ageDisplay').textContent = selectedAge;
+            document.getElementById('emotionDisplay').textContent = selectedEmotion;
+            document.getElementById('wsState').textContent = ws ? ws.readyState : 'null';
+            document.getElementById('sessionDisplay').textContent = sessionId || 'None';
+        }
+        
+        function testConnection() {
+            log('🔌 Testing WebSocket connection...');
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const connectionId = 'debug-' + Math.random().toString(36).substr(2, 9);
+            const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/${connectionId}`;
+            
+            log(`Connecting to: ${wsUrl}`);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                log('✅ WebSocket connected successfully');
+                updateDisplay();
+            };
+            
+            ws.onclose = () => {
+                log('❌ WebSocket disconnected');
+                updateDisplay();
+            };
+            
+            ws.onerror = (error) => {
+                log('❌ WebSocket error: ' + error);
+                updateDisplay();
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                log(`📥 Received: ${message.type} - ${JSON.stringify(message)}`);
+                
+                if (message.type === 'session_created') {
+                    sessionId = message.session_id;
+                    updateDisplay();
+                }
+            };
+        }
+        
+        function testCreateSession() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('❌ WebSocket not connected. Test connection first.');
+                return;
+            }
+            
+            const sessionData = {
+                type: 'session_create',
+                data: {
+                    age: selectedAge,
+                    preferences: ['animals', 'adventure'],
+                    emotional_goal: selectedEmotion
+                }
+            };
+            
+            log('📤 Sending session create: ' + JSON.stringify(sessionData));
+            ws.send(JSON.stringify(sessionData));
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Debug interface loaded');
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>
