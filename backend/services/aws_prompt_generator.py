@@ -65,7 +65,7 @@ class AWSPromptGenerator:
         }
 
     def create_safe_avatar_prompt(self, age: int, style: str = "cartoon", 
-                                theme: str = "fantasy", characteristics: Optional[Dict] = None) -> str:
+                                theme: str = "fantasy", characteristics: Optional[Dict] = None, gender: Optional[str] = None) -> str:
         """
         Create ULTRA-SAFE AWS-compliant prompt for avatar generation
         
@@ -80,11 +80,19 @@ class AWSPromptGenerator:
         """
         try:
             # Create ultra-minimal, safe prompt
-            base_prompt = f"""Create a simple cartoon mascot character for children's stories.
+            gender_desc = ""
+            if gender == "male":
+                gender_desc = "boy character"
+            elif gender == "female":
+                gender_desc = "girl character"
+            else:
+                gender_desc = "character"
+            
+            base_prompt = f"""Create a simple cartoon {gender_desc} mascot for children's stories.
 
 STYLE: Animated cartoon style, like Disney or Pixar characters
 ART: Digital illustration, completely non-realistic, stylized cartoon art
-CHARACTER: Friendly cartoon mascot, suitable for children's books
+CHARACTER: Friendly cartoon {gender_desc} mascot, suitable for children's books, age {age}
 COLORS: Bright, cheerful, family-friendly colors
 BACKGROUND: Simple solid color or basic pattern
 
@@ -109,7 +117,7 @@ This should be a basic cartoon character illustration, similar to animated movie
             return self._get_fallback_prompt(age, style)
 
     def create_story_image_prompt(self, scene_description: str, age: int, 
-                                has_avatar: bool = False, theme: str = "fantasy") -> str:
+                                has_avatar: bool = False, theme: str = "fantasy", gender: Optional[str] = None, story_context: str = "") -> str:
         """
         Create AWS-compliant prompt for story image generation with avatar
         
@@ -118,6 +126,7 @@ This should be a basic cartoon character illustration, similar to animated movie
             age: Child's age
             has_avatar: Whether to include avatar character
             theme: Story theme
+            story_context: Full story text for context
             
         Returns:
             AWS-compliant story image prompt
@@ -126,28 +135,39 @@ This should be a basic cartoon character illustration, similar to animated movie
             age_group = self._get_age_group(age)
             age_descriptors = self.age_appropriate_descriptors[age_group]
             
-            prompt = f"""Create a beautiful children's storybook illustration showing: {scene_description}
+            # Extract key story moment from context
+            story_moment = ""
+            if story_context:
+                # Get last 200 characters for most recent context
+                story_moment = f"\nSTORY MOMENT: {story_context[-200:]}"
+            
+            prompt = f"""Create a beautiful children's storybook illustration showing: {scene_description}{story_moment}
 
 ARTISTIC REQUIREMENTS:
 - Style: Children's book illustration, completely non-photorealistic
 - Art medium: Digital painting, cartoon/animated style
 - Color palette: Warm, inviting, magical colors appropriate for age {age}
 - Mood: {age_descriptors['mood']}, enchanting, child-friendly
+- IMPORTANT: Illustrate the SPECIFIC action and emotion from the story moment
 
 SCENE SPECIFICATIONS:
-- Setting: Magical {theme} themed environment
+- Setting: Magical {theme} themed environment that matches the story
 - Atmosphere: Whimsical, safe, adventurous but not scary
 - Lighting: Soft, warm, storybook lighting
-- Composition: Engaging for {age}-year-old children"""
+- Composition: Engaging for {age}-year-old children, focused on the story action
+- Details: Include specific elements mentioned in the story (objects, settings, actions)"""
 
             if has_avatar:
+                gender_desc = "boy" if gender == "male" else "girl" if gender == "female" else "child"
                 prompt += f"""
 
 CHARACTER INTEGRATION:
-- Include a cartoon {age_descriptors['character']} as the main character
+- Include a cartoon {gender_desc} {age_descriptors['character']} as the main character
 - Character style: Completely stylized, animated cartoon appearance
-- Character role: Friendly protagonist integrated naturally into the scene
-- Character design: {age_descriptors['style']}"""
+- Character role: Friendly {gender_desc} protagonist integrated naturally into the scene
+- Character design: {age_descriptors['style']}
+- Character action: Show the {gender_desc} doing EXACTLY what's described in the story moment
+- Character emotion: Express the specific emotion from the story (happy, curious, brave, etc.)"""
 
             prompt += f"""
 
@@ -155,7 +175,8 @@ FINAL REQUIREMENTS:
 - This MUST be a storybook illustration, never photorealistic
 - Perfect for children aged {age}
 - Magical, engaging, and completely safe content
-- Art style similar to popular children's book illustrations"""
+- Art style similar to popular children's book illustrations
+- CRITICAL: The image must reflect the specific story moment, not just generic theme"""
 
             return self._sanitize_prompt(prompt)
             

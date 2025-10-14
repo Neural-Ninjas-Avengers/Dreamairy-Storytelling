@@ -2,7 +2,7 @@
   "environment": "production",
   "aws": {
     "enabled": true,
-    "credentials": "Z0FBQUFBQm83TFFDMzAtbDdMSFpEQXJXLUY3eU1ENGk1azRQUVo2LXFraTZ1b1lLTVdRZUkxckpzY1lPYTdQTWVUWmJJeGJSNkdVcy0wSUtfMlIyTHpEdkRSR3czcDltZ3N0alV0eUFFM1JYWDJWbEJLMXlZVHpITy1WV1ZHT0lIUklPcWg5ZWlKcGNhOXAwUTN0YUNSZm45cmZTMkRQY0ljQ0FFNmJLeXBFblVtdDlHNHhseF85Q3lWMWtsZk9PRnV6VnphTmFXUnJJVTU1eS1KVl9mb2FfQThTaUVzR0hoWlVHenR3M0pqVWNFMGJZVTFia0g2VT0=",
+    "credentials": "Z0FBQUFBQm83ZnJQc0prTHdoTmF4WlItVkx6UjlCVnVzZ1dna0VIQWhDVWVJWEZzZ290bWlZX0NtQjVya3JnNkdYTmt4LTdOM2JNSWphZGNDYnNqX1dYOVFKQ1RqdDNvMzFwbmtKQjlXZG94bURHenZERVVhdE1TM0x6OUJ3eFJIQW5MX3JBT2hqWVFhQjY5NHp5OGhOX1RObkZydDBZTFkxWS1PV2xwV1pGTlFYQkhyRXIyOFdkM3dkZWtIbmJVZ2d5OFo1YW4tX2RtSF9mZ1lkRi1hNjFILWZxeTZJYVZfbWJxTGl1SXZTSzJWd1duY19xQmtPRT0=",
     "region": "eu-west-1",
     "services": {
       "bedrock": {
@@ -55,6 +55,6 @@
     "costAlerts": true,
     "costLimit": 100.0
   },
-  "lastUpdated": "2025-10-13T10:10:42.749323",
+  "lastUpdated": "2025-10-14T09:25:03.837563",
   "version": "1.0.0"
 }

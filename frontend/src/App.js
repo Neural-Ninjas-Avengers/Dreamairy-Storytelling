@@ -4,6 +4,7 @@ import ModernWelcomeScreen from './components/ModernWelcomeScreen';
 import ModernStoryArea from './components/ModernStoryArea';
 import AdminDashboard from './components/AdminDashboard';
 import AIInfoDisplay from './components/AIInfoDisplay';
+import LoadingModal from './components/LoadingModal';
 import { StorytellingService } from './services/StorytellingService';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -15,9 +16,12 @@ function App() {
   const [selectedAge, setSelectedAge] = useState(null);
   const [selectedEmotion, setSelectedEmotion] = useState('entertain'); // Default emotion
   const [selectedTheme, setSelectedTheme] = useState(null);
+  const [selectedGender, setSelectedGender] = useState(null);
   const [storyService, setStoryService] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   useEffect(() => {
     // Initialize storytelling service
@@ -44,13 +48,17 @@ function App() {
   const handleStartStory = async () => {
     if (!storyService || !selectedAge || !selectedTheme) return;
 
+    setIsLoading(true);
+    setLoadingMessage('Creando tu historia mágica...');
+
     try {
       const session = await storyService.createSession({
         age: selectedAge,
         preferences: [selectedTheme],
         emotional_goal: selectedEmotion,
         voice_preference: null,
-        anonymous_id: 'react_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11)
+        anonymous_id: 'react_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11),
+        gender: selectedGender
       });
       
       if (!session.success) {
@@ -63,6 +71,7 @@ function App() {
       // Upload photo if captured
       if (capturedPhoto && capturedPhoto.base64) {
         try {
+          setLoadingMessage('Subiendo tu foto...');
           await storyService.uploadUserPhoto(newSessionId, capturedPhoto.base64);
           console.log('Photo uploaded to session:', newSessionId);
         } catch (error) {
@@ -70,7 +79,9 @@ function App() {
         }
       }
       
+      setLoadingMessage('Preparando tu aventura...');
       setCurrentScreen('story');
+      setIsLoading(false);
     } catch (error) {
       console.error('Failed to start story:', error);
       alert('No se pudo conectar al servidor. Usando modo demo...');
@@ -78,6 +89,7 @@ function App() {
       const demoSessionId = 'demo_session_' + Date.now();
       setSessionId(demoSessionId);
       setCurrentScreen('story');
+      setIsLoading(false);
     }
   };
 
@@ -95,12 +107,23 @@ function App() {
     setSelectedAge(null);
     setSelectedEmotion('entertain'); // Reset to default
     setSelectedTheme(null);
+    setSelectedGender(null);
     setCapturedPhoto(null);
   };
 
   const handlePhotoTaken = (photoData) => {
     setCapturedPhoto(photoData);
     console.log('Photo captured for AI generation:', photoData);
+    
+    // Auto-select detected age and gender
+    if (photoData.detected_age) {
+      setSelectedAge(photoData.detected_age);
+      console.log('🎯 Age detected and selected:', photoData.detected_age);
+    }
+    if (photoData.detected_gender) {
+      setSelectedGender(photoData.detected_gender);
+      console.log('🎯 Gender detected and selected:', photoData.detected_gender);
+    }
     
     // If avatar was generated, log it
     if (photoData.has_avatar && photoData.avatar_url) {
@@ -191,6 +214,9 @@ function App() {
       {/* AI Info Display - shows current AI services */}
       <AIInfoDisplay />
       
+      {/* Loading Modal */}
+      <LoadingModal isOpen={isLoading} message={loadingMessage} />
+      
       <div className="relative z-10 min-h-screen flex items-center justify-center p-2 sm:p-4">
         <AnimatePresence mode="wait">
           {currentScreen === 'welcome' && (
@@ -207,9 +233,11 @@ function App() {
                 selectedAge={selectedAge}
                 selectedEmotion={selectedEmotion}
                 selectedTheme={selectedTheme}
+                selectedGender={selectedGender}
                 onAgeSelect={setSelectedAge}
                 onEmotionSelect={setSelectedEmotion}
                 onThemeSelect={setSelectedTheme}
+                onGenderSelect={setSelectedGender}
                 onStartStory={handleStartStory}
                 onPhotoTaken={handlePhotoTaken}
                 sessionId={sessionId}
@@ -236,6 +264,7 @@ function App() {
                 selectedAge={selectedAge}
                 selectedEmotion={selectedEmotion}
                 selectedTheme={selectedTheme}
+                selectedGender={selectedGender}
                 capturedPhoto={capturedPhoto}
                 onEndSession={handleEndSession}
               />

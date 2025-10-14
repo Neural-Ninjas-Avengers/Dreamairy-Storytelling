@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import AIImageGenerator from './AIImageGenerator';
 import EmotionDetector from './EmotionDetector';
 import AudioControls from './AudioControls';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -10,7 +9,8 @@ const ModernStoryArea = ({
   sessionId, 
   selectedAge, 
   selectedEmotion, 
-  selectedTheme, 
+  selectedTheme,
+  selectedGender,
   capturedPhoto,
   onEndSession 
 }) => {
@@ -44,92 +44,132 @@ const ModernStoryArea = ({
   const extractVisualDescription = (storyText, theme) => {
     const text = storyText.toLowerCase();
     
-    // Extract key visual elements
+    // Extract key visual elements with more comprehensive detection
     const characters = [];
     const settings = [];
     const objects = [];
     const actions = [];
+    const emotions = [];
     
-    // Character detection
+    // Character detection (expanded)
     if (text.includes('hada') || text.includes('fairy')) characters.push('magical fairy');
     if (text.includes('princesa') || text.includes('princess')) characters.push('princess');
     if (text.includes('dragón') || text.includes('dragon')) characters.push('friendly dragon');
     if (text.includes('unicornio') || text.includes('unicorn')) characters.push('unicorn');
-    if (text.includes('conejo') || text.includes('rabbit')) characters.push('cute rabbit');
+    if (text.includes('conejo') || text.includes('rabbit') || text.includes('luna')) characters.push('cute rabbit');
     if (text.includes('león') || text.includes('lion')) characters.push('brave lion');
-    if (text.includes('niño') || text.includes('niña') || text.includes('child')) characters.push('child protagonist');
+    if (text.includes('búho') || text.includes('owl')) characters.push('wise owl');
+    if (text.includes('ardilla') || text.includes('squirrel')) characters.push('playful squirrel');
+    if (text.includes('capitán') || text.includes('captain')) characters.push('brave captain');
+    if (text.includes('pirata') || text.includes('pirate')) characters.push('friendly pirate');
     
-    // Setting detection
-    if (text.includes('bosque') || text.includes('forest')) settings.push('enchanted forest');
-    if (text.includes('castillo') || text.includes('castle')) settings.push('magical castle');
-    if (text.includes('reino') || text.includes('kingdom')) settings.push('crystal kingdom');
+    // Setting detection (expanded)
+    if (text.includes('bosque') || text.includes('forest') || text.includes('árbol')) settings.push('enchanted forest with tall trees');
+    if (text.includes('castillo') || text.includes('castle') || text.includes('torre')) settings.push('magical castle with towers');
+    if (text.includes('reino') || text.includes('kingdom') || text.includes('cristal')) settings.push('crystal kingdom');
     if (text.includes('jardín') || text.includes('garden')) settings.push('beautiful garden');
-    if (text.includes('mar') || text.includes('océano') || text.includes('ocean')) settings.push('magical ocean');
+    if (text.includes('mar') || text.includes('océano') || text.includes('ocean') || text.includes('barco')) settings.push('magical ocean with ships');
     if (text.includes('montaña') || text.includes('mountain')) settings.push('mystical mountains');
     if (text.includes('cueva') || text.includes('cave')) settings.push('mysterious cave');
+    if (text.includes('isla') || text.includes('island')) settings.push('tropical island');
+    if (text.includes('pueblo') || text.includes('village') || text.includes('casa')) settings.push('cozy village');
+    if (text.includes('sendero') || text.includes('camino') || text.includes('path')) settings.push('winding forest path');
+    if (text.includes('nube') || text.includes('cloud') || text.includes('cielo')) settings.push('sky with fluffy clouds');
     
-    // Object detection
+    // Object detection (expanded)
     if (text.includes('corona') || text.includes('crown')) objects.push('golden crown');
     if (text.includes('varita') || text.includes('wand')) objects.push('magic wand');
     if (text.includes('espada') || text.includes('sword')) objects.push('shining sword');
     if (text.includes('flor') || text.includes('flower')) objects.push('colorful flowers');
     if (text.includes('estrella') || text.includes('star')) objects.push('sparkling stars');
     if (text.includes('luna') || text.includes('moon')) objects.push('bright moon');
+    if (text.includes('tesoro') || text.includes('treasure')) objects.push('treasure chest');
+    if (text.includes('mapa') || text.includes('map')) objects.push('ancient map');
+    if (text.includes('luz') || text.includes('light') || text.includes('brilla')) objects.push('magical glowing light');
+    if (text.includes('melodía') || text.includes('música') || text.includes('canta')) objects.push('musical notes');
     
-    // Action detection
-    if (text.includes('volar') || text.includes('flying')) actions.push('flying gracefully');
+    // Action detection (expanded)
+    if (text.includes('volar') || text.includes('voló') || text.includes('flying')) actions.push('flying gracefully through the air');
     if (text.includes('bailar') || text.includes('dancing')) actions.push('dancing joyfully');
-    if (text.includes('cantar') || text.includes('singing')) actions.push('singing beautifully');
-    if (text.includes('correr') || text.includes('running')) actions.push('running happily');
+    if (text.includes('cantar') || text.includes('singing') || text.includes('canta')) actions.push('singing beautifully');
+    if (text.includes('correr') || text.includes('running') || text.includes('saltó')) actions.push('running and jumping happily');
+    if (text.includes('explorar') || text.includes('descubr') || text.includes('encontr')) actions.push('exploring and discovering');
+    if (text.includes('ayudar') || text.includes('ayudó') || text.includes('helping')) actions.push('helping others kindly');
+    if (text.includes('jugar') || text.includes('jugó') || text.includes('playing')) actions.push('playing together');
+    if (text.includes('navegar') || text.includes('navegó')) actions.push('sailing across the seas');
     
-    // Build description
+    // Emotion detection
+    if (text.includes('feliz') || text.includes('alegr') || text.includes('happy')) emotions.push('happy and joyful');
+    if (text.includes('curioso') || text.includes('curiosidad')) emotions.push('curious and excited');
+    if (text.includes('valiente') || text.includes('brave')) emotions.push('brave and confident');
+    if (text.includes('amigo') || text.includes('amistad') || text.includes('friend')) emotions.push('friendly and caring');
+    
+    // Build rich description from story context
     let description = '';
     
+    // Start with the main character and action
     if (characters.length > 0) {
       description += characters.slice(0, 2).join(' and ');
-    } else {
-      description += theme === 'animals' ? 'cute forest animals' : 'magical characters';
+      if (actions.length > 0) {
+        description += ' ' + actions[0];
+      }
+    } else if (actions.length > 0) {
+      description += 'The protagonist ' + actions[0];
     }
     
-    if (actions.length > 0) {
-      description += ' ' + actions[0];
-    }
-    
+    // Add setting
     if (settings.length > 0) {
-      description += ' in a ' + settings[0];
+      description += ' in ' + settings[0];
     } else {
       description += theme === 'fantasy' ? ' in a magical realm' : 
-                    theme === 'animals' ? ' in a peaceful meadow' : 
+                    theme === 'animals' ? ' in a peaceful forest' : 
+                    theme === 'adventure' ? ' on an exciting journey' :
                     ' in a wonderful place';
     }
     
+    // Add objects
     if (objects.length > 0) {
-      description += ' with ' + objects.slice(0, 2).join(' and ');
+      description += ', with ' + objects.slice(0, 2).join(' and ');
     }
     
-    // Add theme-specific enhancements
+    // Add emotions
+    if (emotions.length > 0) {
+      description += ', feeling ' + emotions[0];
+    }
+    
+    // Add theme-specific atmosphere
     if (theme === 'fantasy') {
-      description += ', magical sparkles, enchanted atmosphere';
+      description += ', magical sparkles and enchanted atmosphere';
     } else if (theme === 'animals') {
-      description += ', natural beauty, friendly environment';
+      description += ', natural beauty and friendly environment';
     } else if (theme === 'adventure') {
-      description += ', exciting journey, brave exploration';
+      description += ', exciting atmosphere and sense of discovery';
+    } else if (theme === 'friendship') {
+      description += ', warm and heartfelt atmosphere';
     }
     
     return description || 'A beautiful children\'s story scene';
   };
 
-  const generateStorySegment = async () => {
+  const generateStorySegment = async (isFinale = false) => {
     setIsLoading(true);
     
     try {
+      // Build story context for continuity
+      const storyContext = storySegments.map(s => s.text).join(' ');
+      const lastSegment = storySegments.length > 0 ? storySegments[storySegments.length - 1].text : '';
+      
       // Always try the story service (which now has proper fallbacks)
       const response = await storyService.generateStorySegment(sessionId, {
         theme: selectedTheme,
         segments_so_far: storySegments.length,
         child_age: selectedAge,
         emotional_goal: selectedEmotion,
-        language: language // Add language support
+        language: language,
+        gender: selectedGender,
+        story_context: storyContext,
+        last_segment: lastSegment,
+        is_finale: isFinale
       });
       
       const newSegment = {
@@ -231,14 +271,23 @@ const ModernStoryArea = ({
       const hasUserAvatar = capturedPhoto?.has_avatar && capturedPhoto?.avatar_url;
       const hasUserPhoto = capturedPhoto?.base64;
       
+      const genderDesc = selectedGender === 'male' ? 'boy' : selectedGender === 'female' ? 'girl' : 'child';
+      
+      // Extract key elements from the current story segment
+      const visualDesc = extractVisualDescription(storySegment.text, selectedTheme);
+      
+      // Build rich scene description with full story context
+      const storyExcerpt = storySegment.text.substring(0, 300);
+      const enrichedDescription = `${visualDesc}. STORY MOMENT: "${storyExcerpt}". The ${genderDesc} protagonist is the main focus, actively participating in this exact scene with clear facial expressions and body language that matches what's happening in the story. Show the specific action and emotion from this moment.`;
+      
       const imageRequest = {
-        scene_description: extractVisualDescription(storySegment.text, selectedTheme),
+        scene_description: enrichedDescription,
         story_context: storySegments.map(s => s.text).join(' '),
         character_description: hasUserAvatar ? 
-          `The main character should look like the storybook avatar provided, a ${selectedAge}-year-old child in a magical storybook art style, integrated naturally into the scene` :
+          `The main character is a ${selectedAge}-year-old ${genderDesc} who looks like the storybook avatar provided. The ${genderDesc} should be clearly visible and central to the scene, showing emotions and actions from the story. Integrate naturally into the scene with the avatar's appearance.` :
           hasUserPhoto ? 
-          `A ${selectedAge}-year-old child protagonist who looks like the user photo, realistic but child-friendly, integrated naturally into the magical story` : 
-          `Realistic but child-friendly characters appropriate for a ${selectedAge}-year-old child`,
+          `A ${selectedAge}-year-old ${genderDesc} protagonist who looks like the user photo. The ${genderDesc} should be the focus of the image, showing clear emotions and actions from the story moment. Realistic but child-friendly style.` : 
+          `A ${selectedAge}-year-old ${genderDesc} as the main character, clearly visible and central to the scene, showing emotions and actions from the story`,
         style: selectedAge >= 10 ? 'realistic_children' : 'semi_realistic_children',
         has_user_photo: hasUserPhoto,
         has_user_avatar: hasUserAvatar,
@@ -246,7 +295,8 @@ const ModernStoryArea = ({
         user_avatar_url: capturedPhoto?.avatar_url || null,
         theme: selectedTheme,
         emotional_goal: selectedEmotion,
-        child_age: selectedAge
+        child_age: selectedAge,
+        gender: selectedGender
       };
       
       // Generate image using the storytelling service
@@ -588,7 +638,7 @@ const ModernStoryArea = ({
           <div className="flex gap-3">
             <motion.button
               className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold shadow-xl border border-white/20"
-              onClick={generateStorySegment}
+              onClick={() => generateStorySegment(false)}
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -598,6 +648,22 @@ const ModernStoryArea = ({
             >
               {storySegments.length === 0 ? `✨ ${t('startMagicalStory')}` : `📖 ${t('newChapter')}`}
             </motion.button>
+            
+            {storySegments.length > 0 && (
+              <motion.button
+                className="bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 px-6 rounded-xl font-semibold shadow-xl border border-white/20"
+                onClick={() => generateStorySegment(true)}
+                disabled={isLoading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{
+                  boxShadow: '0 15px 35px -5px rgba(245, 158, 11, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                🎬 {language === 'en' ? 'Finish Story' : 'Terminar Cuento'}
+              </motion.button>
+            )}
+            
             <motion.button
               className="bg-white/10 text-white/90 py-3 px-6 rounded-xl font-semibold border border-white/20 hover:bg-white/20 hover:text-white transition-all duration-300"
               onClick={onEndSession}

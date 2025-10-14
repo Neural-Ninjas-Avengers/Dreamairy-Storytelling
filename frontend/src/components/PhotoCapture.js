@@ -123,7 +123,9 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                 setAvatarData({
                   url: result.avatar_url,
                   provider: result.provider,
-                  message: result.message
+                  message: result.message,
+                  detected_age: result.detected_age,
+                  detected_gender: result.detected_gender
                 });
               }
               
@@ -138,7 +140,9 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                 avatar_url: result.avatar_url,
                 avatar_provider: result.provider,
                 avatar_message: result.message,
-                has_avatar: !!result.avatar_url
+                has_avatar: !!result.avatar_url,
+                detected_age: result.detected_age,
+                detected_gender: result.detected_gender
               });
               
             } else {
@@ -215,16 +219,16 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
             <div className="relative inline-block">
               <img
                 src={avatarData?.url || capturedPhoto}
-                alt={avatarData ? "Avatar de cuento" : "Foto capturada"}
+                alt="Avatar de cuento"
                 className="w-20 h-20 object-cover rounded-xl border-2 border-green-400 shadow-lg"
               />
               <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">{avatarData ? '🎭' : '✓'}</span>
+                <span className="text-white text-xs">🎭</span>
               </div>
             </div>
             <div>
               <p className="text-white text-xs font-semibold">
-                {avatarData ? 'Avatar de cuento listo' : t('usePhoto')}
+                Avatar de cuento listo
               </p>
               <motion.button
                 className="text-white text-xs opacity-70 hover:opacity-100 underline mt-1"
@@ -396,11 +400,11 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                       <p className="text-white text-sm opacity-80">
                         {uploadSuccess 
                           ? (avatarData 
-                              ? 'Tu avatar personalizado aparecerá en todas las ilustraciones'
+                              ? `Tu avatar personalizado aparecerá en todas las ilustraciones${avatarData.detected_age ? ` · ${avatarData.detected_age} años` : ''}${avatarData.detected_gender ? ` · ${avatarData.detected_gender === 'male' ? 'Chico' : 'Chica'}` : ''}`
                               : 'Tu foto se usará para crear ilustraciones personalizadas'
                             )
                           : isUploading
-                          ? 'AWS Titan está transformando tu foto en un personaje de cuento'
+                          ? 'AWS Rekognition está analizando tu foto...'
                           : 'Se generará automáticamente tu avatar de cuento personalizado'
                         }
                       </p>

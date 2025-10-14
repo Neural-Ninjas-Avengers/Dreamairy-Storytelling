@@ -265,6 +265,10 @@ def generate_story(session_id):
         segments_so_far = data.get("segments_so_far", 0)
         child_age = data.get("child_age", 5)
         emotional_goal = data.get("emotional_goal", "entertain")
+        gender = data.get("gender")
+        story_context_full = data.get("story_context", "")
+        last_segment = data.get("last_segment", "")
+        is_finale = data.get("is_finale", False)
         
         # Check if we should use real AWS Bedrock or demo templates
         config_manager = ConfigManager()
@@ -292,6 +296,17 @@ def generate_story(session_id):
                 else:
                     story_context = "\nINICIA UNA NUEVA HISTORIA:"
 
+                # Build gender context
+                gender_desc = ""
+                if gender == "male":
+                    gender_desc = "El protagonista es un niño"
+                elif gender == "female":
+                    gender_desc = "La protagonista es una niña"
+                
+                finale_instruction = ""
+                if is_finale:
+                    finale_instruction = "\n\nIMPORTANTE - FINAL:\nEste es el ÚLTIMO segmento. Concluye la historia satisfactoriamente con un final feliz."
+                
                 # Create enhanced story prompt with continuity
                 story_prompt = f"""Eres un narrador experto en cuentos infantiles. Crea un segmento de historia mágica y envolvente que continúe naturalmente la historia anterior.
 
@@ -300,11 +315,15 @@ CONTEXTO:
 - Tema: {theme}
 - Objetivo emocional: {emotional_goal}
 - Segmento número: {segments_so_far + 1}
-{story_context}
+{f"- {gender_desc}" if gender_desc else ""}
+{story_context}{finale_instruction}
 
 INSTRUCCIONES PARA CONTINUIDAD:
-{"- Continúa directamente desde donde terminó la historia anterior" if previous_segments else "- Inicia una nueva historia original"}
-- Mantén consistencia con personajes y escenarios ya establecidos
+{"- Continúa DIRECTAMENTE desde donde terminó el último segmento" if previous_segments else "- Inicia una nueva historia original"}
+{f"- Último segmento: '{last_segment[-150:]}'" if last_segment else ""}
+- Mantén TOTAL consistencia con personajes, nombres y escenarios
+- NO repitas información ya mencionada
+- Avanza con nuevos eventos
 - Desarrolla la trama de manera natural y progresiva
 - Cada segmento debe avanzar la historia hacia adelante
 - Mantén el tono y estilo establecido en segmentos anteriores
@@ -336,7 +355,7 @@ Genera SOLO el texto del siguiente segmento de la historia, sin introducción ni
                 aws_connector = AWSConnector(credentials)
                 
                 # Generate story using real AWS Bedrock
-                success, story_text = aws_connector.generate_story_with_bedrock(story_prompt, max_tokens=200)
+                success, story_text = aws_connector.generate_story_with_bedrock(story_prompt, max_tokens=400)
                 
                 if not success:
                     logger.error("❌ AWS Bedrock story generation failed, falling back to templates")
@@ -864,6 +883,8 @@ def generate_image(session_id):
         theme = data.get("theme", "animals")
         style = data.get("style", "children_book")
         child_age = data.get("child_age", 5)
+        story_context = data.get("story_context", "")
+        gender = data.get("gender")
         
         logger.info(f"Generating image for session: {session_id}")
         logger.info(f"Scene: {scene_description[:50]}...")
@@ -900,15 +921,25 @@ def generate_image(session_id):
                 if has_user_avatar and user_avatar_url:
                     # Use avatar as reference for story illustration
                     logger.info("🎭 Using user avatar as reference for story illustration")
+                    # Create enhanced prompt with story context
+                    from services.aws_prompt_generator import aws_prompt_generator
+                    enhanced_prompt = aws_prompt_generator.create_story_image_prompt(
+                        scene_description, child_age, True, theme, gender, story_context
+                    )
                     success, image_url, message = aws_connector.generate_story_image_with_avatar(
-                        scene_description, user_avatar_url, theme, child_age
+                        enhanced_prompt, user_avatar_url, theme, child_age
                     )
                     
                 elif has_user_photo and user_photo_base64:
                     # Use photo as reference for story illustration
                     logger.info("📸 Using user photo as reference for story illustration")
+                    # Create enhanced prompt with story context
+                    from services.aws_prompt_generator import aws_prompt_generator
+                    enhanced_prompt = aws_prompt_generator.create_story_image_prompt(
+                        scene_description, child_age, True, theme, gender, story_context
+                    )
                     success, image_url, message = aws_connector.generate_story_image_with_photo(
-                        scene_description, user_photo_base64, theme, child_age
+                        enhanced_prompt, user_photo_base64, theme, child_age
                     )
                     
                 else:

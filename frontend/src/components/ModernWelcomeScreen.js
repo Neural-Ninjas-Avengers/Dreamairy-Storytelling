@@ -8,10 +8,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 const ModernWelcomeScreen = ({ 
   selectedAge, 
   selectedEmotion, 
-  selectedTheme, 
+  selectedTheme,
+  selectedGender,
   onAgeSelect, 
   onEmotionSelect, 
-  onThemeSelect, 
+  onThemeSelect,
+  onGenderSelect,
   onStartStory,
   onPhotoTaken,
   sessionId,
@@ -41,12 +43,6 @@ const ModernWelcomeScreen = ({
   };
 
   const ages = [3, 4, 5, 6, 7, 8, 9, 10];
-  
-  const emotions = [
-    { id: 'entertain', icon: '😄', label: t('emotions.entertain') },
-    { id: 'calm', icon: '😌', label: t('emotions.calm') },
-    { id: 'stimulate_play', icon: '🤩', label: t('emotions.stimulate_play') }
-  ];
 
   const themes = [
     { id: 'animals', icon: '🐾', label: t('themes.animals') },
@@ -91,10 +87,22 @@ const ModernWelcomeScreen = ({
             ease: "easeInOut" 
           }}
         >
-          {capturedPhoto?.url ? (
+          {capturedPhoto?.avatar_url ? (
+            <img 
+              src={capturedPhoto.avatar_url} 
+              alt="Tu Avatar" 
+              className="w-full h-full object-cover rounded-full border-4 border-white border-opacity-50 shadow-2xl"
+              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
+              onLoad={() => console.log('✅ Avatar loaded in logo')}
+              onError={(e) => {
+                console.error('❌ Avatar failed to load:', e);
+                e.target.src = "/dreamairy-logo.svg";
+              }}
+            />
+          ) : capturedPhoto?.url ? (
             <img 
               src={capturedPhoto.url} 
-              alt="Tu Foto" 
+              alt="Tu Avatar" 
               className="w-full h-full object-cover rounded-full border-4 border-white border-opacity-50 shadow-2xl"
               style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }}
               onLoad={() => console.log('✅ Photo loaded in logo')}
@@ -130,13 +138,67 @@ const ModernWelcomeScreen = ({
           sessionId={sessionId}
           storytellingService={storytellingService}
         />
+        {/* Show detected info */}
+        {capturedPhoto?.detected_age && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 p-3 bg-green-500/20 border border-green-400/30 rounded-xl text-center"
+          >
+            <p className="text-green-200 text-sm font-medium">
+              ✅ IA detectó: {capturedPhoto.detected_age} años • {capturedPhoto.detected_gender === 'male' ? '👦 Chico' : '👧 Chica'}
+            </p>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Gender selection */}
+      <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
+        <h3 className="text-white/95 text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-4 text-center tracking-wide">
+          Eres...
+        </h3>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <motion.button
+            className={`
+              p-3 sm:p-4 rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base
+              ${selectedGender === 'male' 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl scale-105 border border-white/20' 
+                : 'bg-white/10 text-white/90 hover:bg-white/20 border border-white/10'
+              }
+            `}
+            onClick={() => onGenderSelect('male')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            👦 Chico
+          </motion.button>
+          <motion.button
+            className={`
+              p-3 sm:p-4 rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base
+              ${selectedGender === 'female' 
+                ? 'bg-gradient-to-r from-pink-600 to-pink-500 text-white shadow-xl scale-105 border border-white/20' 
+                : 'bg-white/10 text-white/90 hover:bg-white/20 border border-white/10'
+              }
+            `}
+            onClick={() => onGenderSelect('female')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            👧 Chica
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Age selection */}
       <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
-        <h3 className="text-white/95 text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-4 text-center tracking-wide">
+        <h3 className="text-white/95 text-base sm:text-lg lg:text-xl font-semibold mb-2 text-center tracking-wide">
           {t('howOldAreYou')}
         </h3>
+        {selectedAge && (
+          <p className="text-center text-blue-300 text-sm font-medium mb-2">
+            🎂 {selectedAge} años seleccionados
+          </p>
+        )}
         <div className="grid grid-cols-4 gap-1 sm:gap-2">
           {ages.map((age) => (
             <motion.button
