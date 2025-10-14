@@ -14,7 +14,7 @@ const EmotionDetector = ({ onEmotionDetected, capturedPhoto }) => {
   // Initialize emotion analysis service
   const emotionService = useRef(new EmotionAnalysisService()).current;
 
-  // Analyze emotion from photo using advanced AI simulation
+  // Analyze emotion from photo using AWS Rekognition
   const analyzeEmotionFromPhoto = useCallback(async () => {
     if (!capturedPhoto?.url) {
       console.warn('No photo available for emotion analysis');
@@ -25,13 +25,34 @@ const EmotionDetector = ({ onEmotionDetected, capturedPhoto }) => {
     setShowResults(false);
 
     try {
-      console.log('🔍 Starting advanced emotion analysis from photo...');
+      console.log('🔍 Starting AWS Rekognition emotion analysis...');
       
-      // Use the emotion analysis service
-      const analysisResult = await emotionService.analyzeEmotionFromPhoto(
-        capturedPhoto.url, 
-        language
-      );
+      const response = await fetch('/api/v1/detect-emotion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_base64: capturedPhoto.url })
+      });
+      
+      const data = await response.json();
+      
+      let analysisResult;
+      if (data.success && data.emotion) {
+        analysisResult = {
+          emotion: data.emotion,
+          label: data.label,
+          icon: data.icon,
+          confidence: data.confidence,
+          storyInfluence: data.story_influence,
+          source: 'aws_rekognition',
+          processingDetails: {
+            facialFeaturesDetected: true,
+            emotionalPatternsFound: data.all_emotions?.length || 1,
+            analysisMethod: 'aws_rekognition'
+          }
+        };
+      } else {
+        analysisResult = await emotionService.analyzeEmotionFromPhoto(capturedPhoto.url, language);
+      }
       
       // Update state with results
       setDetectedEmotion({

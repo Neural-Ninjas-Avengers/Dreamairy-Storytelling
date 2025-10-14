@@ -269,6 +269,8 @@ def generate_story(session_id):
         story_context_full = data.get("story_context", "")
         last_segment = data.get("last_segment", "")
         is_finale = data.get("is_finale", False)
+        detected_emotion = data.get("detected_emotion")
+        emotion_confidence = data.get("emotion_confidence", 0)
         
         # Check if we should use real AWS Bedrock or demo templates
         config_manager = ConfigManager()
@@ -307,7 +309,19 @@ def generate_story(session_id):
                 if is_finale:
                     finale_instruction = "\n\nIMPORTANTE - FINAL:\nEste es el ÚLTIMO segmento. Concluye la historia satisfactoriamente con un final feliz."
                 
-                # Create enhanced story prompt with continuity
+                emotion_adaptation = ""
+                if detected_emotion and emotion_confidence > 0.6:
+                    emotion_map = {
+                        'happy': 'El niño está feliz, mantén el tono alegre y divertido',
+                        'sad': 'El niño está triste, haz la historia más reconfortante y esperanzadora',
+                        'angry': 'El niño está enojado, usa un tono calmante y pacífico',
+                        'confused': 'El niño está confundido, simplifica y clarifica la narrativa',
+                        'surprised': 'El niño está sorprendido, mantén elementos de asombro',
+                        'calm': 'El niño está calmado, mantén un ritmo tranquilo',
+                        'fear': 'El niño tiene miedo, usa tono muy reconfortante y seguro'
+                    }
+                    emotion_adaptation = f"\n\nADAPTACIÓN EMOCIONAL (Confianza: {int(emotion_confidence*100)}%):\n{emotion_map.get(detected_emotion, 'Adapta el tono según la emoción detectada')}"
+                
                 story_prompt = f"""Eres un narrador experto en cuentos infantiles. Crea un segmento de historia mágica y envolvente que continúe naturalmente la historia anterior.
 
 CONTEXTO:
@@ -316,7 +330,7 @@ CONTEXTO:
 - Objetivo emocional: {emotional_goal}
 - Segmento número: {segments_so_far + 1}
 {f"- {gender_desc}" if gender_desc else ""}
-{story_context}{finale_instruction}
+{story_context}{finale_instruction}{emotion_adaptation}
 
 INSTRUCCIONES PARA CONTINUIDAD:
 {"- Continúa DIRECTAMENTE desde donde terminó el último segmento" if previous_segments else "- Inicia una nueva historia original"}
@@ -747,6 +761,32 @@ def upload_photo(session_id):
         # Get session age for avatar generation
         session_age = sessions[session_id].get("age", 6)
         
+        # Try to detect age and gender with AWS Rekognition FIRST
+        detected_age = None
+        detected_gender = None
+        
+        config_manager = ConfigManager()
+        try:
+            credentials = config_manager.get_aws_credentials()
+            if credentials:
+                from admin.aws_connector import AWSConnector
+                aws_connector = AWSConnector(credentials)
+                # Detect age and gender from photo
+                photo_bytes = base64.b64decode(photo_base64.split(',')[1] if ',' in photo_base64 else photo_base64)
+                logger.info("🔍 Attempting age/gender detection with AWS Rekognition...")
+                success, faces = aws_connector.detect_faces(photo_bytes)
+                if success and faces:
+                    face = faces[0]
+                    if 'AgeRange' in face:
+                        detected_age = int((face['AgeRange']['Low'] + face['AgeRange']['High']) / 2)
+                    if 'Gender' in face:
+                        detected_gender = face['Gender']['Value'].lower()
+                    logger.info(f"✅ Detected age: {detected_age}, gender: {detected_gender}")
+                else:
+                    logger.warning("⚠️ No faces detected in photo")
+        except Exception as e:
+            logger.warning(f"⚠️ Age/gender detection failed: {e}")
+        
         # Use enhanced avatar generation with fallback system
         from services.avatar_fallback_controller import avatar_fallback_controller, AvatarRequest
         
@@ -757,6 +797,7 @@ def upload_photo(session_id):
             style="cartoon"
         )
         
+        # Generate avatar
         result = avatar_fallback_controller.generate_avatar(avatar_request)
         
         if result.success:
@@ -764,6 +805,10 @@ def upload_photo(session_id):
             sessions[session_id]["avatar_url"] = result.avatar_url
             sessions[session_id]["avatar_method"] = result.method_used.value
             sessions[session_id]["avatar_quality"] = result.quality_score
+            if detected_age:
+                sessions[session_id]["detected_age"] = detected_age
+            if detected_gender:
+                sessions[session_id]["detected_gender"] = detected_gender
             
             logger.info(f"✅ Avatar generated successfully using {result.method_used.value}")
             
@@ -775,6 +820,8 @@ def upload_photo(session_id):
                 "quality_score": result.quality_score,
                 "generation_time": result.generation_time,
                 "fallback_used": result.fallback_used,
+                "detected_age": detected_age,
+                "detected_gender": detected_gender,
                 "cost_status": "AWS costs apply" if result.method_used.value == "aws_bedrock" else "Free"
             })
         else:
@@ -826,6 +873,31 @@ def upload_photo_simple():
         
         logger.info("Processing photo upload (no session required)")
         
+        # Detect age and gender with AWS Rekognition FIRST
+        detected_age = None
+        detected_gender = None
+        
+        config_manager = ConfigManager()
+        try:
+            credentials = config_manager.get_aws_credentials()
+            if credentials:
+                from admin.aws_connector import AWSConnector
+                aws_connector = AWSConnector(credentials)
+                photo_bytes = base64.b64decode(photo_base64.split(',')[1] if ',' in photo_base64 else photo_base64)
+                logger.info("🔍 Attempting age/gender detection with AWS Rekognition...")
+                success, faces = aws_connector.detect_faces(photo_bytes)
+                if success and faces:
+                    face = faces[0]
+                    if 'AgeRange' in face:
+                        detected_age = int((face['AgeRange']['Low'] + face['AgeRange']['High']) / 2)
+                    if 'Gender' in face:
+                        detected_gender = face['Gender']['Value'].lower()
+                    logger.info(f"✅ Detected age: {detected_age}, gender: {detected_gender}")
+                else:
+                    logger.warning("⚠️ No faces detected in photo")
+        except Exception as e:
+            logger.warning(f"⚠️ Age/gender detection failed: {e}")
+        
         # Use enhanced avatar generation with fallback system
         from services.avatar_fallback_controller import avatar_fallback_controller, AvatarRequest
         
@@ -849,6 +921,8 @@ def upload_photo_simple():
                 "quality_score": result.quality_score,
                 "generation_time": result.generation_time,
                 "fallback_used": result.fallback_used,
+                "detected_age": detected_age,
+                "detected_gender": detected_gender,
                 "cost_status": "AWS costs apply" if result.method_used.value == "aws_bedrock" else "Free"
             })
         else:
@@ -860,6 +934,8 @@ def upload_photo_simple():
                 "provider": "Photo Storage",
                 "message": "Avatar generation failed, but photo processed",
                 "error": result.message,
+                "detected_age": detected_age,
+                "detected_gender": detected_gender,
                 "cost_status": "Free"
             })
         
@@ -1854,3 +1930,64 @@ if __name__ == '__main__':
         debug=debug,
         threaded=True
     )
+
+@app.route('/api/v1/detect-emotion', methods=['POST'])
+def detect_emotion():
+    """Detect emotion from photo using AWS Rekognition"""
+    try:
+        data = request.get_json()
+        photo_base64 = data.get("photo_base64", "")
+        
+        if not photo_base64:
+            return jsonify({"error": "Photo data is required"}), 400
+        
+        config_manager = ConfigManager()
+        credentials = config_manager.get_aws_credentials()
+        
+        if not credentials:
+            return jsonify({"success": False, "message": "AWS not configured"}), 200
+        
+        from admin.aws_connector import AWSConnector
+        aws_connector = AWSConnector(credentials)
+        photo_bytes = base64.b64decode(photo_base64.split(',')[1] if ',' in photo_base64 else photo_base64)
+        
+        success, faces = aws_connector.detect_faces(photo_bytes)
+        
+        if not success or not faces:
+            return jsonify({"success": False, "message": "No face detected"}), 200
+        
+        face = faces[0]
+        emotions = face.get('Emotions', [])
+        
+        if not emotions:
+            return jsonify({"success": False, "message": "No emotions detected"}), 200
+        
+        top_emotion = max(emotions, key=lambda e: e['Confidence'])
+        
+        emotion_map = {
+            'HAPPY': {'label': 'Feliz', 'icon': '😊', 'influence': 'entertain'},
+            'SAD': {'label': 'Triste', 'icon': '😢', 'influence': 'calm'},
+            'ANGRY': {'label': 'Enojado', 'icon': '😠', 'influence': 'calm'},
+            'CONFUSED': {'label': 'Confundido', 'icon': '😕', 'influence': 'entertain'},
+            'DISGUSTED': {'label': 'Disgustado', 'icon': '🤢', 'influence': 'entertain'},
+            'SURPRISED': {'label': 'Sorprendido', 'icon': '😲', 'influence': 'entertain'},
+            'CALM': {'label': 'Calmado', 'icon': '😌', 'influence': 'calm'},
+            'FEAR': {'label': 'Asustado', 'icon': '😨', 'influence': 'calm'}
+        }
+        
+        emotion_type = top_emotion['Type']
+        emotion_info = emotion_map.get(emotion_type, {'label': 'Neutral', 'icon': '😐', 'influence': 'entertain'})
+        
+        return jsonify({
+            "success": True,
+            "emotion": emotion_type.lower(),
+            "label": emotion_info['label'],
+            "icon": emotion_info['icon'],
+            "confidence": top_emotion['Confidence'] / 100,
+            "story_influence": emotion_info['influence'],
+            "all_emotions": [{"type": e['Type'], "confidence": e['Confidence']} for e in emotions]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error detecting emotion: {e}")
+        return jsonify({"success": False, "message": str(e)}), 200

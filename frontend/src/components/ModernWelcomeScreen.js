@@ -138,7 +138,12 @@ const ModernWelcomeScreen = ({
           sessionId={sessionId}
           storytellingService={storytellingService}
         />
-        {/* Show detected info */}
+        {/* Show detected info - Debug */}
+        {capturedPhoto && (
+          <div className="mt-2 text-xs text-white/50">
+            Debug: {JSON.stringify({age: capturedPhoto.detected_age, gender: capturedPhoto.detected_gender})}
+          </div>
+        )}
         {capturedPhoto?.detected_age && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}

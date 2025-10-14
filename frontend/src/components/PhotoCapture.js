@@ -182,8 +182,8 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
   const retakePhoto = useCallback(() => {
     if (capturedPhoto) {
       URL.revokeObjectURL(capturedPhoto);
-      setCapturedPhoto(null);
     }
+    setCapturedPhoto(null);
     setAvatarData(null);
     setUploadSuccess(false);
     setIsUploading(false);

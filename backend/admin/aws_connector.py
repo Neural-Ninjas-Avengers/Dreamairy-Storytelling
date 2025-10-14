@@ -399,39 +399,7 @@ class AWSConnector:
         try:
             client = self._get_bedrock_client()
             
-            # Try Claude 3 Haiku first (better quality)
-            try:
-                body = json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": max_tokens,
-                    "temperature": 0.8,
-                    "top_p": 0.9,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                })
-                
-                response = client.invoke_model(
-                    body=body,
-                    modelId="anthropic.claude-3-haiku-20240307-v1:0",
-                    accept="application/json",
-                    contentType="application/json"
-                )
-                
-                response_body = json.loads(response.get('body').read())
-                story_text = response_body.get('content', [{}])[0].get('text', '').strip()
-                
-                if story_text:
-                    logger.info("Story generated with Claude 3 Haiku")
-                    return True, story_text
-                    
-            except Exception as claude3_error:
-                logger.warning(f"Claude 3 Haiku failed: {claude3_error}, trying Titan Text")
-            
-            # Fallback to Titan Text Express
+            # Use Titan Text Express
             body = json.dumps({
                 "inputText": prompt,
                 "textGenerationConfig": {
@@ -479,6 +447,24 @@ class AWSConnector:
         except Exception as e:
             logger.error(f"Polly speech synthesis failed: {e}")
             return False, b""
+    
+    def detect_faces(self, image_bytes: bytes) -> Tuple[bool, list]:
+        """Detect faces and get age/gender using Rekognition"""
+        try:
+            client = self._get_rekognition_client()
+            
+            response = client.detect_faces(
+                Image={'Bytes': image_bytes},
+                Attributes=['ALL']
+            )
+            
+            faces = response.get('FaceDetails', [])
+            logger.info(f"Rekognition detected {len(faces)} faces")
+            return True, faces
+            
+        except Exception as e:
+            logger.error(f"Rekognition face detection failed: {e}")
+            return False, []
     
     def analyze_emotion_with_rekognition(self, image_bytes: bytes) -> Tuple[bool, Dict]:
         """Analyze emotions using Rekognition"""

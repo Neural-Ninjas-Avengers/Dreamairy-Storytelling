@@ -153,28 +153,19 @@ class AvatarFallbackController:
     def _determine_method_order(self, request: AvatarRequest) -> List[AvatarGenerationMethod]:
         """Determine optimal method order based on request characteristics"""
         
-        # Start with default order
-        method_order = self.generation_methods.copy()
+        # ALWAYS try AWS first if available
+        method_order = [AvatarGenerationMethod.AWS_BEDROCK]
+        
+        # Add remaining methods
+        remaining_methods = [m for m in self.generation_methods if m != AvatarGenerationMethod.AWS_BEDROCK]
         
         # Adjust based on photo availability
         if not request.photo_base64:
-            # No photo - prioritize template-based generation
-            method_order.remove(AvatarGenerationMethod.STYLIZED_PHOTO)
-            method_order.insert(1, AvatarGenerationMethod.TEMPLATE_BASED)
+            # No photo - remove stylized photo method
+            if AvatarGenerationMethod.STYLIZED_PHOTO in remaining_methods:
+                remaining_methods.remove(AvatarGenerationMethod.STYLIZED_PHOTO)
         
-        # Adjust based on age (younger children might benefit from simpler methods)
-        if request.age <= 5:
-            # For very young children, prioritize template-based for consistency
-            if AvatarGenerationMethod.TEMPLATE_BASED in method_order:
-                method_order.remove(AvatarGenerationMethod.TEMPLATE_BASED)
-                method_order.insert(1, AvatarGenerationMethod.TEMPLATE_BASED)
-        
-        # Adjust based on performance history
-        method_order.sort(key=lambda m: (
-            -self._get_method_success_rate(m),  # Higher success rate first
-            -self.method_quality_scores[m],     # Higher quality first
-            self._get_method_avg_time(m)        # Faster methods first
-        ))
+        method_order.extend(remaining_methods)
         
         logger.info(f"📋 Method order determined: {[m.value for m in method_order]}")
         return method_order

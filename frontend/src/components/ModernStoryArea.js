@@ -155,11 +155,9 @@ const ModernStoryArea = ({
     setIsLoading(true);
     
     try {
-      // Build story context for continuity
       const storyContext = storySegments.map(s => s.text).join(' ');
       const lastSegment = storySegments.length > 0 ? storySegments[storySegments.length - 1].text : '';
       
-      // Always try the story service (which now has proper fallbacks)
       const response = await storyService.generateStorySegment(sessionId, {
         theme: selectedTheme,
         segments_so_far: storySegments.length,
@@ -169,7 +167,9 @@ const ModernStoryArea = ({
         gender: selectedGender,
         story_context: storyContext,
         last_segment: lastSegment,
-        is_finale: isFinale
+        is_finale: isFinale,
+        detected_emotion: detectedEmotion?.emotion,
+        emotion_confidence: detectedEmotion?.confidence
       });
       
       const newSegment = {
@@ -416,7 +416,6 @@ const ModernStoryArea = ({
     setDetectedEmotion(emotionData);
     
     try {
-      // Send detected emotion to story service
       const result = await storyService.sendEmotionFeedback(sessionId, {
         emotion: emotionData.emotion,
         confidence: emotionData.confidence,
@@ -424,24 +423,25 @@ const ModernStoryArea = ({
         timestamp: Date.now()
       });
       
-      console.log('Detected emotion sent to story service:', result);
-      
-      // Show feedback to user
       showNotification(
         language === 'en' 
           ? `AI detected: ${emotionData.label} (${Math.round(emotionData.confidence * 100)}%)` 
           : `IA detectó: ${emotionData.label} (${Math.round(emotionData.confidence * 100)}%)`
       );
       
-      // If there's an adaptation, show it
       if (result.adaptation && result.adaptation.action_type !== 'no_action') {
         setTimeout(() => {
           showNotification(
             language === 'en'
-              ? `Story adapted based on your emotion: ${result.adaptation.reason}`
-              : `Historia adaptada según tu emoción: ${result.adaptation.reason}`
+              ? `Story adapted: ${result.adaptation.reason}`
+              : `Historia adaptada: ${result.adaptation.reason}`
           );
         }, 1500);
+      }
+      
+      // Auto-generate next segment with emotion adaptation
+      if (storySegments.length > 0) {
+        setTimeout(() => generateStorySegment(false), 2000);
       }
     } catch (error) {
       console.error('Error sending detected emotion:', error);
@@ -526,8 +526,8 @@ const ModernStoryArea = ({
               className="flex items-center justify-center gap-3 mb-4"
             >
               <img
-                src={capturedPhoto.url || capturedPhoto}
-                alt="Tu foto"
+                src={capturedPhoto.avatar_url || capturedPhoto.url || capturedPhoto}
+                alt="Tu avatar"
                 className="w-12 h-12 object-cover rounded-full border-2 border-white border-opacity-50 shadow-lg"
               />
               <div className="text-left">
@@ -742,13 +742,13 @@ const ModernStoryArea = ({
             👤 {language === 'en' ? 'Your Profile' : 'Tu Perfil'}
           </h3>
           
-          {/* User photo section */}
+          {/* User avatar section */}
           {capturedPhoto && (
             <div className="text-center mb-4">
               <div className="relative inline-block">
                 <img
-                  src={capturedPhoto.url || capturedPhoto}
-                  alt="Tu foto"
+                  src={capturedPhoto.avatar_url || capturedPhoto.url || capturedPhoto}
+                  alt="Tu avatar"
                   className="w-16 h-16 object-cover rounded-full border-3 border-white border-opacity-50 shadow-lg"
                 />
               </div>
