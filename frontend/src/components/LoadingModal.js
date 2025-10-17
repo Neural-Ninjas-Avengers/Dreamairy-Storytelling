@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const LoadingModal = ({ isOpen, message }) => {
+  const { t } = useLanguage();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -25,10 +27,10 @@ const LoadingModal = ({ isOpen, message }) => {
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
               <h3 className="text-white text-xl font-bold mb-2 text-center">
-                {message || 'Cargando...'}
+                {message || t('loading')}
               </h3>
               <p className="text-white/70 text-sm text-center">
-                Por favor espera un momento
+                {t('pleaseWait')}
               </p>
             </div>
           </motion.div>

@@ -1,13 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const EmotionSelector = ({ selectedEmotion, onEmotionSelect, size = 'large' }) => {
+  const { t } = useLanguage();
+  
   const emotions = [
     {
       id: 'entertain',
       emoji: '😄',
-      label: 'Diversión',
-      description: 'Historias llenas de aventura y risas',
+      label: t('emotions.entertain'),
+      description: t('emotionDescriptions.entertain'),
       gradient: 'from-amber-400 via-orange-500 to-yellow-500',
       shadowColor: 'shadow-amber-500/30',
       ringColor: 'ring-amber-300'
@@ -15,8 +18,8 @@ const EmotionSelector = ({ selectedEmotion, onEmotionSelect, size = 'large' }) =
     {
       id: 'calm',
       emoji: '😌',
-      label: 'Calma',
-      description: 'Cuentos relajantes y tranquilos',
+      label: t('emotions.calm'),
+      description: t('emotionDescriptions.calm'),
       gradient: 'from-blue-400 via-cyan-500 to-teal-500',
       shadowColor: 'shadow-blue-500/30',
       ringColor: 'ring-blue-300'
@@ -24,8 +27,8 @@ const EmotionSelector = ({ selectedEmotion, onEmotionSelect, size = 'large' }) =
     {
       id: 'stimulate_play',
       emoji: '😊',
-      label: 'Energía',
-      description: 'Aventuras emocionantes y dinámicas',
+      label: t('emotions.stimulate_play'),
+      description: t('emotionDescriptions.stimulate_play'),
       gradient: 'from-pink-400 via-rose-500 to-red-500',
       shadowColor: 'shadow-pink-500/30',
       ringColor: 'ring-pink-300'

@@ -99,44 +99,84 @@ class StoryTemplateManager:
         # Default to middle age group
         return self.age_themes[(6, 8)]
     
-    def create_initial_story_prompt(self, profile: ChildProfile, theme: str) -> str:
+    def create_initial_story_prompt(self, profile: ChildProfile, theme: str, language: str = 'en') -> str:
         """Create initial story generation prompt."""
         age_elements = self.get_age_appropriate_elements(profile.age)
         emotional_elements = self.emotional_elements.get(profile.emotional_goal, {})
+        
+        # Language-specific instructions
+        language_instructions = {
+            'en': "CRITICAL: Write the ENTIRE story in ENGLISH. Every word must be in English.",
+            'es': "CRÍTICO: Escribe TODA la historia en ESPAÑOL. Cada palabra debe estar en español."
+        }
+        language_instruction = language_instructions.get(language, language_instructions['en'])
         
         # Build character preferences
         character_prefs = ""
         if profile.preferences:
             character_prefs = f"The child loves: {', '.join(profile.preferences)}. "
         
-        prompt = f"""Create the beginning of an engaging children's story for a {profile.age}-year-old child.
+        # Build character name
+        character_name = ""
+        if profile.name:
+            character_name = f"The main character should be named {profile.name}. "
+        
+        # Build gender specification
+        gender_spec = ""
+        if profile.gender:
+            logger.info(f"🎭 Profile gender received: '{profile.gender}'")
+            if profile.gender.lower() in ['niña', 'girl', 'female']:
+                gender_spec = "The main character MUST be a GIRL (una niña). "
+                logger.info("✅ Gender set to GIRL")
+            elif profile.gender.lower() in ['niño', 'boy', 'male']:
+                gender_spec = "The main character MUST be a BOY (un niño). "
+                logger.info("✅ Gender set to BOY")
+            else:
+                logger.warning(f"⚠️ Unknown gender value: '{profile.gender}'")
+        else:
+            logger.warning("⚠️ No gender provided in profile")
+        
+        # Create gender-specific language
+        gender_pronoun = ""
+        gender_article = ""
+        if profile.gender:
+            if profile.gender.lower() in ['niña', 'girl', 'female']:
+                gender_pronoun = "she/her"
+                gender_article = "a girl"
+            elif profile.gender.lower() in ['niño', 'boy', 'male']:
+                gender_pronoun = "he/him"
+                gender_article = "a boy"
+        
+        prompt = f"""Create a children's story beginning for a {profile.age}-year-old child.
 
-Story Requirements:
-- Theme: {theme}
-- Emotional Goal: {profile.emotional_goal.value}
-- Tone: {emotional_elements.get('tone', 'engaging and age-appropriate')}
-- Vocabulary: {age_elements['vocabulary_level']} level
-- Sentence Length: {age_elements['sentence_length']} sentences
-- Length: 2-3 paragraphs (about 150-200 words)
+{language_instruction}
 
+CRITICAL REQUIREMENTS - MUST FOLLOW:
+1. CHARACTER NAME: {f"The main character MUST be named {profile.name}" if profile.name else "Create a main character"}
+2. CHARACTER GENDER: {gender_spec if gender_spec else "Choose an appropriate gender"}
+   {f"- Use pronouns: {gender_pronoun}" if gender_pronoun else ""}
+   {f"- The protagonist is {gender_article}" if gender_article else ""}
+   - DO NOT use the opposite gender under any circumstances
+
+Theme: {theme}
+Tone: {emotional_elements.get('tone', 'engaging')}
 {character_prefs}
 
-Story Elements to Include:
-- Setting: Choose from {emotional_elements.get('settings', ['magical place', 'familiar environment'])}
-- Main Character: A relatable character (child, friendly animal, or magical being)
-- Supporting Characters: 1-2 additional characters
-- Beginning Situation: Introduce the character and a gentle challenge or adventure
+Include:
+- A {age_elements['vocabulary_level']} vocabulary level
+- {age_elements['sentence_length']} sentences
+- Setting from: {emotional_elements.get('settings', ['magical place'])}
+- Main character{f" named {profile.name}" if profile.name else ""} who is {gender_article if gender_article else "a child, animal, or magical being"}
+- 1-2 supporting characters
+- A gentle challenge or adventure beginning
 
-Writing Style:
-- Use vivid but simple descriptions
-- Include dialogue to make it engaging
-- Create opportunities for emotional connection
-- End this segment with anticipation for what comes next
-- Make it interactive by occasionally asking gentle questions like "What do you think happens next?"
+Style: Vivid but simple, include dialogue, create emotional connection, end with anticipation.
 
-Important: This is just the beginning of the story. Create intrigue and connection, but don't resolve everything yet.
+IMPORTANT: Write a SHORT but COMPLETE chapter for a children's story. The chapter should have a natural beginning and end with a complete sentence (ending with a period). Do NOT cut off mid-sentence. Approximately 3-5 complete sentences.
 
-Begin the story now:"""
+REMEMBER: The main character is {gender_article if gender_article else "the protagonist"}{f" named {profile.name}" if profile.name else ""}.
+
+Write the story chapter now (short but complete):"""
 
         return prompt
     
@@ -148,6 +188,15 @@ Begin the story now:"""
     ) -> str:
         """Create prompt for story adaptation based on detected emotion."""
         
+        # Language-specific instructions
+        language = current_context.target_language or 'en'
+        language_instructions = {
+            'en': "CRITICAL: Write the ENTIRE continuation in ENGLISH. Every word must be in English.",
+            'es': "CRÍTICO: Escribe TODA la continuación en ESPAÑOL. Cada palabra debe estar en español."
+        }
+        language_instruction = language_instructions.get(language, language_instructions['en'])
+        logger.info(f"🌍 Generating continuation in language: {language}")
+        
         # Analyze current emotional state
         emotion_description = self._describe_emotion_state(emotion)
         adaptation_strategy = self._get_adaptation_strategy(emotion, goal)
@@ -156,32 +205,57 @@ Begin the story now:"""
         current_segment = current_context.current_segment[-500:] if current_context.current_segment else ""
         characters = [char.name for char in current_context.characters]
         
-        prompt = f"""Continue this children's story by adapting it based on the child's current emotional state.
+        # Build gender specification for continuity
+        gender_spec = ""
+        gender_pronoun = ""
+        gender_article = ""
+        if current_context.target_gender:
+            logger.info(f"🎭 Continuation - using gender: '{current_context.target_gender}'")
+            if current_context.target_gender.lower() in ['niña', 'girl', 'female']:
+                gender_spec = "The main character is a GIRL (una niña). "
+                gender_pronoun = "she/her"
+                gender_article = "a girl"
+                logger.info("✅ Continuation gender set to GIRL")
+            elif current_context.target_gender.lower() in ['niño', 'boy', 'male']:
+                gender_spec = "The main character is a BOY (un niño). "
+                gender_pronoun = "he/him"
+                gender_article = "a boy"
+                logger.info("✅ Continuation gender set to BOY")
+        else:
+            logger.warning("⚠️ No gender in story context for continuation")
+        
+        prompt = f"""Continue this story. Previous: "{current_segment}"
 
-Current Story Context:
-- Child's Age: {current_context.target_age}
-- Story Theme: {current_context.theme}
-- Current Characters: {', '.join(characters) if characters else 'To be introduced'}
+{language_instruction}
+
+Context:
+- Age: {current_context.target_age}, Theme: {current_context.theme}
+- Characters: {', '.join(characters) if characters else 'TBD'}
 - Setting: {current_context.setting}
-- Previous Story Segment: "{current_segment}"
+- Emotion: {emotion_description}
+- Strategy: {adaptation_strategy}
 
-Child's Current Emotional State:
-{emotion_description}
+CRITICAL - CHARACTER CONSISTENCY:
+{gender_spec if gender_spec else ""}
+{f"- Use pronouns: {gender_pronoun}" if gender_pronoun else ""}
+{f"- The protagonist is {gender_article}" if gender_article else ""}
+- DO NOT change the character's gender from the previous segment
+- Maintain ALL character traits from previous segments
 
-Adaptation Strategy:
-{adaptation_strategy}
-
-Story Continuation Requirements:
-- Length: 1-2 paragraphs (100-150 words)
-- Maintain story continuity and character consistency
-- Adapt the tone, pace, and content based on the emotional state
-- Include character dialogue and interactions
-- Create natural story progression
-- End with a gentle transition that maintains engagement
+Requirements:
+- Maintain continuity and character consistency
+- Adapt tone/pace based on emotional state
+- Include dialogue
+- Natural progression
+- Gentle transition
 
 {self._get_specific_adaptation_instructions(emotion, goal)}
 
-Continue the story now, seamlessly building on what came before:"""
+IMPORTANT: Write a SHORT but COMPLETE chapter continuation. The chapter should flow naturally from the previous segment and end with a complete sentence (ending with a period). Do NOT cut off mid-sentence. Approximately 3-5 complete sentences.
+
+REMEMBER: Keep the same character gender as in the previous segment{f" ({gender_article})" if gender_article else ""}.
+
+Write continuation (short but complete):"""
 
         return prompt
     
@@ -276,15 +350,20 @@ class StoryGenerator(StoryGeneratorInterface):
         self.max_tokens = 800
         self.temperature = 0.7
         
-    async def generate_initial_story(self, profile: ChildProfile, theme: str) -> StorySegment:
+    async def generate_initial_story(self, profile: ChildProfile, theme: str, language: str = 'en') -> StorySegment:
         """Generate the initial story segment."""
         try:
-            # Create the prompt
-            prompt = self.template_manager.create_initial_story_prompt(profile, theme)
+            # Create the prompt with language
+            logger.info(f"🌍 Generating initial story in language: {language}")
+            prompt = self.template_manager.create_initial_story_prompt(profile, theme, language)
             
             # Generate story using appropriate client (AWS or mock)
             bedrock_client = get_current_bedrock_client()
             story_text = await bedrock_client.generate_story(prompt, self.max_tokens)
+            
+            # Log word count for monitoring
+            word_count = len(story_text.split())
+            logger.info(f"Story generated with {word_count} words (target: 80)")
             
             # Validate content appropriateness
             if not self.validate_content_appropriateness(story_text, profile.age):
@@ -337,6 +416,10 @@ class StoryGenerator(StoryGeneratorInterface):
             bedrock_client = get_current_bedrock_client()
             story_text = await bedrock_client.generate_story(prompt, self.max_tokens)
             
+            # Log word count for monitoring
+            word_count = len(story_text.split())
+            logger.info(f"Adapted story generated with {word_count} words (target: 80)")
+            
             # Validate content
             if not self.validate_content_appropriateness(story_text, current_context.target_age):
                 logger.warning("Adapted content failed appropriateness check")
@@ -387,7 +470,6 @@ Story Context:
 - Recent Story: "{story_context.current_segment[-300:] if story_context.current_segment else ''}"
 
 Conclusion Requirements:
-- Length: 1-2 paragraphs (100-150 words)
 - Provide a satisfying, happy ending
 - Reinforce positive themes and lessons
 - Include all main characters in the resolution
@@ -395,7 +477,9 @@ Conclusion Requirements:
 - End with a warm, comforting note
 - Include a gentle moral or lesson learned
 
-Create the story conclusion now:"""
+IMPORTANT: Write a SHORT but COMPLETE conclusion chapter. The chapter should provide a satisfying ending and finish with a complete sentence (ending with a period). Do NOT cut off mid-sentence. Approximately 3-5 complete sentences.
+
+Write the conclusion now (short but complete):"""
 
             story_text = await bedrock_client.generate_story(prompt, self.max_tokens)
             
@@ -513,6 +597,31 @@ Create the story conclusion now:"""
         pacing = pace_mapping.get((emotion.primary_emotion, goal), "normal")
         
         return emotional_tone, pacing
+    
+    def _truncate_to_word_limit(self, text: str, word_limit: int) -> str:
+        """Truncate text to exact word limit, trying to end at sentence boundary."""
+        words = text.split()
+        
+        if len(words) <= word_limit:
+            return text
+        
+        # Truncate to word limit
+        truncated_words = words[:word_limit]
+        truncated_text = ' '.join(truncated_words)
+        
+        # Try to end at a sentence boundary
+        last_period = truncated_text.rfind('.')
+        last_exclamation = truncated_text.rfind('!')
+        last_question = truncated_text.rfind('?')
+        
+        last_sentence_end = max(last_period, last_exclamation, last_question)
+        
+        # If we found a sentence ending in the last 20% of the text, use it
+        if last_sentence_end > len(truncated_text) * 0.8:
+            return truncated_text[:last_sentence_end + 1]
+        
+        # Otherwise, just add ellipsis
+        return truncated_text + '...'
     
     def _create_fallback_story(self, profile: ChildProfile, theme: str) -> StorySegment:
         """Create a simple fallback story when AI generation fails."""
@@ -1220,7 +1329,8 @@ class StoryContextManager:
             plot_points=[f"Story begins: {initial_segment.text[:100]}..."],
             emotional_arc=[],
             theme=theme,
-            target_age=child_profile.age
+            target_age=child_profile.age,
+            target_gender=child_profile.gender  # ✅ CRITICAL: Include gender for story continuity
         )
         
         self.session_contexts[session_id] = context

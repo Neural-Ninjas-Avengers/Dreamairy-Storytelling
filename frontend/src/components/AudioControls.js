@@ -47,9 +47,16 @@ const AudioControls = ({
   };
 
   const generateSpeech = async (text, voiceId = selectedVoice) => {
-    if (!text) return;
+    if (!text) {
+      console.warn('⚠️ No text provided for audio generation');
+      return;
+    }
     
     console.log('🎵 Starting audio generation...');
+    console.log('   Session ID:', sessionId);
+    console.log('   Text length:', text.length);
+    console.log('   Voice ID:', voiceId);
+    console.log('   Language:', language);
     
     // FIRST: Stop any current audio before starting new one
     stopCurrentAudio();
@@ -58,7 +65,10 @@ const AudioControls = ({
       setIsPlaying(true);
       
       // Try AWS Polly first
-      const response = await fetch(`/api/v1/demo/sessions/${sessionId}/text-to-speech`, {
+      const url = `/api/v1/demo/sessions/${sessionId}/text-to-speech`;
+      console.log('   Fetching:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,8 +80,11 @@ const AudioControls = ({
         }),
       });
       
+      console.log('   Response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
+        console.log('   Response data:', result);
         
         if (result.success && result.audio_data) {
           // Use AWS Polly audio
@@ -101,12 +114,18 @@ const AudioControls = ({
             currentAudioRef.current = null;
             fallbackToBrowserTTS(text);
           }
+        } else if (result.success && result.use_browser_tts) {
+          // Backend explicitly says to use browser TTS
+          console.log(`🗣️ Backend says: ${result.message}`);
+          fallbackToBrowserTTS(text);
         } else {
           // Fallback to browser TTS
+          console.log('   No audio data, falling back to browser TTS');
           fallbackToBrowserTTS(text);
         }
       } else {
         // Fallback to browser TTS
+        console.error('   Response not OK, falling back to browser TTS');
         fallbackToBrowserTTS(text);
       }
     } catch (error) {

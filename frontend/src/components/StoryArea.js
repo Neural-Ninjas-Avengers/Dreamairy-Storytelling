@@ -71,7 +71,7 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
       return (
         <div className="flex flex-col items-center justify-center h-full text-forest-600">
           <Palette size={64} className="mb-4 opacity-50" />
-          <p className="text-lg font-medium">Aquí aparecerá una hermosa ilustración</p>
+          <p className="text-lg font-medium">{t('beautifulIllustrationWillAppear')}</p>
         </div>
       );
     }
@@ -113,8 +113,8 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-forest-600">
         <div className="text-6xl mb-4">🎨</div>
-        <h3 className="text-xl font-bold">Ilustración Mágica</h3>
-        <p className="text-center italic">Una hermosa ilustración acompaña esta parte de la historia</p>
+        <h3 className="text-xl font-bold">{t('magicalIllustration')}</h3>
+        <p className="text-center italic">{t('beautifulIllustrationAccompanies')}</p>
       </div>
     );
   };
@@ -134,7 +134,7 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
         transition={{ delay: 0.2 }}
       >
         <h2 className="font-fredoka text-3xl text-forest-800 mb-2">
-          Tu Historia Mágica
+          {t('yourMagicalStory')}
         </h2>
         <motion.div
           className="text-4xl"
@@ -168,7 +168,7 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
             <div className="flex flex-col items-center justify-center h-full text-forest-600">
               <BookOpen size={48} className="mb-4 opacity-50" />
               <p className="text-lg font-medium text-center">
-                {isLoading ? 'Creando tu historia mágica...' : 'Tu historia mágica comenzará aquí...'}
+                {isLoading ? t('creatingYourMagicalStory') : t('yourMagicalStoryWillBeginHere')}
               </p>
               {isLoading && (
                 <motion.div
@@ -202,7 +202,7 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   />
-                  <span className="ml-2 text-forest-600">Continuando la historia...</span>
+                  <span className="ml-2 text-forest-600">{t('continuingTheStory')}</span>
                 </motion.div>
               )}
             </div>
@@ -226,7 +226,7 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {isLoading ? 'Creando...' : 'Continuar Historia'}
+            {isLoading ? t('creating') : t('continueStoryFull')}
           </motion.button>
           
           <motion.button
@@ -236,13 +236,13 @@ const StoryArea = ({ storyService, sessionId, selectedAge, onEndSession }) => {
             whileTap={{ scale: 0.95 }}
           >
             <Home size={20} />
-            Terminar Historia
+            {t('endStory')}
           </motion.button>
         </div>
 
         {/* Emotion Feedback */}
         <div className="bg-white/60 rounded-2xl p-4">
-          <p className="text-forest-700 font-medium mb-3">¿Cómo te sientes?</p>
+          <p className="text-forest-700 font-medium mb-3">{t('howDoYouFeel')}</p>
           <div className="flex gap-3 justify-center flex-wrap">
             {[
               { emotion: 'joy', emoji: '😄', label: 'Feliz' },

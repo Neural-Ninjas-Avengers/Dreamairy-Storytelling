@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const AIImageGenerator = ({ sessionId, storytellingService, storyContext, capturedPhoto, onImageGenerated }) => {
+  const { t } = useLanguage();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [availableStyles, setAvailableStyles] = useState({});
@@ -57,7 +59,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
 
   const generateImage = async () => {
     if (!storyContext || !storyContext.text) {
-      setError('No hay contexto de historia para generar la imagen');
+      setError(t('noStoryContext'));
       return;
     }
 
@@ -84,7 +86,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
       
     } catch (error) {
       console.error('Failed to generate image:', error);
-      setError('Error al generar la imagen. Inténtalo de nuevo.');
+      setError(t('errorGeneratingImage'));
     } finally {
       setIsGenerating(false);
     }
@@ -130,7 +132,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
           >
             {/* Style Selection */}
             <div className="space-y-2">
-              <h4 className="text-white text-sm font-semibold">Estilo de Ilustración:</h4>
+              <h4 className="text-white text-sm font-semibold">{t('illustrationStyle')}</h4>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(availableStyles).map(([key, style]) => (
                   <motion.button
@@ -176,9 +178,9 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
                     </div>
                   )}
                   <div className="flex-1">
-                    <div className="font-semibold text-sm">¡Foto lista para AI!</div>
+                    <div className="font-semibold text-sm">{t('photoReadyForAI')}</div>
                     <div className="opacity-80 text-xs mt-1">
-                      Aparecerás como personaje principal en la ilustración
+                      {t('appearAsMainCharacter')}
                     </div>
                   </div>
                 </div>
@@ -189,7 +191,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
                     <div className="font-semibold mb-1">Se generará:</div>
                     <div className="flex items-center gap-2">
                       <span>🎨</span>
-                      <span>Una ilustración con tu cara como protagonista</span>
+                      <span>{t('illustrationWithYourFace')}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span>📖</span>
@@ -209,8 +211,8 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
               >
                 <span className="text-lg">ℹ️</span>
                 <div>
-                  <div className="font-semibold">Sin foto personalizada</div>
-                  <div className="opacity-80">Se usará un personaje genérico en la ilustración</div>
+                  <div className="font-semibold">{t('noPersonalizedPhoto')}</div>
+                  <div className="opacity-80">{t('genericCharacterUsed')}</div>
                 </div>
               </motion.div>
             )}
@@ -224,7 +226,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
               whileTap={{ scale: 0.98 }}
             >
               <span className="text-xl">🎨</span>
-              <span>Generar Ilustración AI</span>
+              <span>{t('generateAIIllustration')}</span>
             </motion.button>
 
             {error && (
@@ -264,9 +266,9 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-white font-semibold">Generando Ilustración AI...</h3>
+              <h3 className="text-white font-semibold">{t('generatingAIIllustration')}</h3>
               <p className="text-white text-sm opacity-70">
-                Creando una imagen mágica basada en tu historia
+                {t('creatingMagicalImage')}
               </p>
               <div className="flex justify-center space-x-1">
                 {[0, 1, 2].map((i) => (
@@ -297,7 +299,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
             <div className="relative">
               <img
                 src={generatedImage.imageUrl || generatedImage.image_url}
-                alt="Ilustración AI generada"
+                alt={t('aiGeneratedIllustration')}
                 className="w-full max-w-md mx-auto rounded-2xl shadow-2xl border-4 border-white border-opacity-20"
                 onError={(e) => {
                   e.target.src = '/static/images/demo_magical_scene.jpg';
@@ -350,7 +352,7 @@ const AIImageGenerator = ({ sessionId, storytellingService, storyContext, captur
             </div>
 
             <p className="text-white text-xs opacity-80 text-center">
-              ¡Ilustración generada con IA! {generatedImage.has_user_character && 'Apareces como personaje principal.'}
+              {t('aiGeneratedIllustration')} {generatedImage.has_user_character && t('youAppearAsMainCharacter')}
             </p>
           </motion.div>
         )}

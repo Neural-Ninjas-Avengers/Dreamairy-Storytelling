@@ -44,6 +44,7 @@ class ChildProfile(BaseModel):
     voice_preference: Optional[str] = Field(default=None, description="Preferred voice for narration")
     anonymous_id: str = Field(default_factory=lambda: str(uuid4()), description="Anonymous identifier")
     gender: Optional[str] = Field(default=None, description="Child's gender (male/female)")
+    name: Optional[str] = Field(default=None, description="Child's name")
 
 
 class EmotionState(BaseModel):
@@ -75,6 +76,7 @@ class StoryContext(BaseModel):
     theme: str = Field(default="adventure", description="Story theme")
     target_age: int = Field(..., ge=3, le=12)
     target_gender: Optional[str] = Field(default=None, description="Target gender for protagonist")
+    target_language: Optional[str] = Field(default='en', description="Target language for story generation")
 
 
 class StorySegment(BaseModel):

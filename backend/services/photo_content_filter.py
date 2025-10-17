@@ -19,8 +19,9 @@ class PhotoContentFilter:
     """
     
     def __init__(self):
-        self.max_image_size = (512, 512)
-        self.min_image_size = (128, 128)
+        # AWS Bedrock requires height between 320 and 4096 pixels
+        self.max_image_size = (1024, 1024)  # Increased for better quality
+        self.min_image_size = (320, 320)     # AWS Bedrock minimum requirement
         self.supported_formats = ['JPEG', 'PNG', 'WEBP']
         
         # Content safety thresholds

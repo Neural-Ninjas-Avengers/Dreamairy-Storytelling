@@ -85,10 +85,10 @@ const WelcomeScreen = ({ selectedEmotion, onEmotionSelect, onStartStory }) => {
         <div className="text-center text-white/80 p-4">
           <div className="text-6xl mb-2">🦊</div>
           <div className="text-sm font-medium">
-            Imagen del Zorrito
+            {t('foxImage')}
           </div>
           <div className="text-xs mt-1 opacity-70">
-            Generar con IA
+            {t('generateWithAI')}
           </div>
         </div>
         
@@ -189,7 +189,7 @@ const WelcomeScreen = ({ selectedEmotion, onEmotionSelect, onStartStory }) => {
           }}
           whileTap={{ scale: 0.95 }}
         >
-          Comenzar historia
+          {t('startStory')}
         </motion.button>
       </motion.div>
 
@@ -205,7 +205,7 @@ const WelcomeScreen = ({ selectedEmotion, onEmotionSelect, onStartStory }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Historia nueva
+          {t('newStory')}
         </motion.button>
         
         <motion.button
@@ -215,7 +215,7 @@ const WelcomeScreen = ({ selectedEmotion, onEmotionSelect, onStartStory }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Continuar historia
+          {t('continueStoryFull')}
         </motion.button>
       </motion.div>
 

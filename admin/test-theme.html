@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Theme Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            min-height: 100vh;
+        }
+        
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .color-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .color-item {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .primary { background: var(--color-primary, #667eea); }
+        .secondary { background: var(--color-secondary, #764ba2); }
+        .accent { background: var(--color-accent, #f093fb); }
+        .background { background: var(--color-background, #ffecd2); color: #333; }
+        
+        button {
+            background: var(--color-primary, #667eea);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h1>🎨 Test de Aplicación de Tema</h1>
+        <p>Este archivo prueba si las variables CSS se están aplicando correctamente.</p>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="testApplyTheme()">Aplicar Tema de Prueba</button>
+            <button onclick="checkLocalStorage()">Ver localStorage</button>
+            <button onclick="checkCSSVariables()">Ver Variables CSS</button>
+        </div>
+        
+        <div class="color-display">
+            <div class="color-item primary">Primary</div>
+            <div class="color-item secondary">Secondary</div>
+            <div class="color-item accent">Accent</div>
+            <div class="color-item background">Background</div>
+        </div>
+        
+        <div id="output" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap;"></div>
+    </div>
+    
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            output.textContent += message + '\n';
+            console.log(message);
+        }
+        
+        function testApplyTheme() {
+            log('=== Aplicando tema de prueba ===');
+            
+            const testPalette = {
+                primary: '#ff6b6b',
+                secondary: '#4ecdc4',
+                accent: '#ffe66d',
+                background: '#f7fff7',
+                text: '#1a535c',
+                gradient: ['#ff6b6b', '#4ecdc4', '#ffe66d']
+            };
+            
+            const root = document.documentElement;
+            root.style.setProperty('--color-primary', testPalette.primary);
+            root.style.setProperty('--color-secondary', testPalette.secondary);
+            root.style.setProperty('--color-accent', testPalette.accent);
+            root.style.setProperty('--color-background', testPalette.background);
+            root.style.setProperty('--color-text', testPalette.text);
+            root.style.setProperty('--gradient-primary', `linear-gradient(135deg, ${testPalette.gradient.join(', ')})`);
+            
+            log('✅ Variables CSS aplicadas');
+            log('Primary: ' + testPalette.primary);
+            log('Secondary: ' + testPalette.secondary);
+            
+            // Guardar en localStorage
+            const themeData = {
+                palette: testPalette,
+                age: 7,
+                timestamp: Date.now(),
+                metadata: { source: 'test' }
+            };
+            localStorage.setItem('dreamairy_theme', JSON.stringify(themeData));
+            log('💾 Guardado en localStorage');
+        }
+        
+        function checkLocalStorage() {
+            log('=== Verificando localStorage ===');
+            const saved = localStorage.getItem('dreamairy_theme');
+            if (saved) {
+                const data = JSON.parse(saved);
+                log('✅ Tema encontrado en localStorage:');
+                log(JSON.stringify(data, null, 2));
+            } else {
+                log('❌ No hay tema en localStorage');
+            }
+        }
+        
+        function checkCSSVariables() {
+            log('=== Variables CSS actuales ===');
+            const root = document.documentElement;
+            const style = getComputedStyle(root);
+            
+            const vars = [
+                '--color-primary',
+                '--color-secondary',
+                '--color-accent',
+                '--color-background',
+                '--gradient-primary'
+            ];
+            
+            vars.forEach(varName => {
+                const value = style.getPropertyValue(varName).trim();
+                log(`${varName}: ${value || '(no definida)'}`);
+            });
+        }
+        
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            log('=== Página cargada ===');
+            checkLocalStorage();
+            checkCSSVariables();
+        });
+    </script>
+</body>
+</html>

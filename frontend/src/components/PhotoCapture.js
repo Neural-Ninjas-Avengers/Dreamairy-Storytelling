@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -198,78 +199,126 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
 
   return (
     <>
-      {/* Trigger Button */}
-      <div className="text-center">
+      {/* Premium Photo Capture Interface */}
+      <div className="relative">
         {!capturedPhoto ? (
-          <motion.button
-            className="bg-white bg-opacity-20 text-white py-3 px-6 rounded-2xl font-semibold hover:bg-opacity-30 transition-all duration-300 flex items-center gap-2 mx-auto"
+          <motion.div
+            className="group cursor-pointer"
             onClick={openCameraModal}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <span className="text-xl">📸</span>
-            <span>{t('takePhotoButton')}</span>
-          </motion.button>
+            {/* Main capture area */}
+            <div className="relative bg-white border-2 border-gray-300 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              
+              {/* Content */}
+              <div className="relative z-10 text-center space-y-4">
+                {/* Icon with animation */}
+                <motion.div
+                  className="w-16 h-16 mx-auto bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <span className="text-2xl">📸</span>
+                </motion.div>
+                
+                {/* Title */}
+                <div>
+                  <h3 className="text-gray-800 text-lg font-bold mb-1">{t('createPersonalizedAvatar')}</h3>
+                  <p className="text-gray-600 text-sm">{t('tapToCapture')}</p>
+                </div>
+                
+                {/* Features */}
+                <div className="flex justify-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <span>✨</span>
+                    <span>{t('advancedAI')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>🎭</span>
+                    <span>{t('storyStyle')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>🔒</span>
+                    <span>{t('private')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         ) : (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="space-y-3"
+            className="relative"
           >
-            <div className="relative inline-block">
-              <img
-                src={avatarData?.url || capturedPhoto}
-                alt="Avatar de cuento"
-                className="w-20 h-20 object-cover rounded-xl border-2 border-green-400 shadow-lg"
-              />
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">🎭</span>
+            {/* Avatar preview card */}
+            <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-xl border border-emerald-400/30 rounded-3xl p-6 shadow-2xl">
+              <div className="flex items-center gap-4">
+                {/* Avatar image */}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-emerald-400/50 shadow-xl">
+                    <img
+                      src={avatarData?.url || capturedPhoto}
+                      alt="Avatar personalizado"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {/* Success badge */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg"
+                  >
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </motion.div>
+                </div>
+                
+                {/* Status info */}
+                <div className="flex-1">
+                  <h4 className="text-white font-bold text-sm mb-1">{t('avatarReady')}</h4>
+                  <p className="text-white/70 text-xs mb-2">{t('youWillAppearInIllustrations')}</p>
+                  
+                  {/* Action button */}
+                  <motion.button
+                    className="text-emerald-300 text-xs font-semibold hover:text-emerald-200 transition-colors flex items-center gap-1"
+                    onClick={openCameraModal}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <span>🔄</span>
+                    <span>{t('changePhoto')}</span>
+                  </motion.button>
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="text-white text-xs font-semibold">
-                Avatar de cuento listo
-              </p>
-              <motion.button
-                className="text-white text-xs opacity-70 hover:opacity-100 underline mt-1"
-                onClick={openCameraModal}
-                whileHover={{ scale: 1.05 }}
-              >
-                {t('retakePhoto')}
-              </motion.button>
             </div>
           </motion.div>
         )}
-        
-        {!capturedPhoto && (
-          <p className="text-white text-xs opacity-70 mt-2">
-            {t('optionalPhotoText')}
-          </p>
-        )}
       </div>
 
-      {/* Full Screen Modal */}
-      <AnimatePresence>
-        {showModal && (
+      {/* Full Screen Modal - Rendered via Portal */}
+      {showModal && ReactDOM.createPortal(
+        <AnimatePresence>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm overflow-y-auto"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={closeModal}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-6 max-w-2xl w-full max-h-screen overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="min-h-screen flex items-center justify-center p-4 py-8">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-white rounded-2xl p-4 max-w-lg w-full shadow-2xl my-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
               {/* Modal Header */}
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-white text-xl font-bold">📸 Captura tu Foto</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-gray-800 text-xl font-bold">{t('captureYourPhoto')}</h2>
                 <motion.button
-                  className="text-white text-2xl hover:text-red-400 transition-colors"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-lg w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow"
                   onClick={closeModal}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -286,66 +335,53 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
+                    className="space-y-3"
                   >
-                    <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-gray-300">
                       <video
                         ref={videoRef}
-                        className="w-full h-80 object-cover"
+                        className="w-full h-64 object-cover"
                         autoPlay
                         muted
                         playsInline
                       />
                       
                       {/* Camera overlay */}
-                      <div className="absolute inset-0 border-4 border-dashed border-white border-opacity-40 pointer-events-none"></div>
+                      <div className="absolute inset-0 border-4 border-dashed border-blue-400 border-opacity-50 pointer-events-none m-4 rounded-2xl"></div>
                       
                       {/* Center focus circle */}
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                         <motion.div
-                          className="w-32 h-32 border-3 border-white border-opacity-80 rounded-full flex items-center justify-center"
+                          className="w-32 h-32 border-4 border-blue-400 border-opacity-80 rounded-full flex items-center justify-center shadow-lg"
                           animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          <div className="w-3 h-3 bg-white rounded-full opacity-80"></div>
+                          <div className="w-4 h-4 bg-blue-400 rounded-full opacity-80 shadow-lg"></div>
                         </motion.div>
-                      </div>
-                      
-                      {/* Instructions */}
-                      <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-70 text-white p-4 rounded-xl">
-                        <div className="text-center">
-                          <div className="font-bold text-lg mb-2">📸 Posiciónate en el centro</div>
-                          <div className="text-sm opacity-90">
-                            Asegúrate de que tu cara esté bien iluminada y centrada
-                          </div>
-                          <div className="text-xs opacity-70 mt-2">
-                            Tu imagen se usará para crear ilustraciones AI personalizadas
-                          </div>
-                        </div>
                       </div>
                     </div>
                     
                     {/* Camera Controls */}
-                    <div className="flex gap-4 justify-center">
+                    <div className="flex gap-3 justify-center flex-wrap">
                       <motion.button
-                        className="bg-gradient-to-r from-pink-500 to-indigo-600 text-white py-4 px-8 rounded-2xl font-bold text-lg shadow-xl flex items-center gap-3"
+                        className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-xl font-bold text-base shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={capturePhoto}
                         disabled={isUploading}
                         whileHover={{ scale: isUploading ? 1 : 1.05 }}
                         whileTap={{ scale: isUploading ? 1 : 0.95 }}
                       >
-                        <span className="text-2xl">📷</span>
-                        <span>{isUploading ? 'Procesando...' : 'Capturar Foto'}</span>
+                        <span className="text-xl">📷</span>
+                        <span>{isUploading ? t('processing') : t('capture')}</span>
                       </motion.button>
                       
                       <motion.button
-                        className="bg-white bg-opacity-20 text-white py-4 px-6 rounded-2xl font-semibold"
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-5 rounded-xl font-bold border border-gray-300 disabled:opacity-50"
                         onClick={closeModal}
                         disabled={isUploading}
                         whileHover={{ scale: isUploading ? 1 : 1.05 }}
                         whileTap={{ scale: isUploading ? 1 : 0.95 }}
                       >
-                        Cancelar
+                        ❌ Cancelar
                       </motion.button>
                     </div>
                   </motion.div>
@@ -358,54 +394,46 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
+                    className="space-y-3"
                   >
                     <div className="text-center">
                       <div className="relative inline-block">
                         <img
                           src={capturedPhoto}
                           alt="Foto capturada"
-                          className="w-64 h-64 object-cover rounded-2xl border-4 border-white border-opacity-30 shadow-2xl"
+                          className="w-48 h-48 object-cover rounded-2xl border-4 border-blue-400 shadow-2xl"
                         />
                         
                         {/* Status indicator */}
-                        <div className={`absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${
+                        <div className={`absolute -top-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 border-2 border-white ${
                           uploadSuccess ? 'bg-green-500' : isUploading ? 'bg-yellow-500 animate-pulse' : 'bg-blue-500'
                         }`}>
                           <span className="text-white text-lg font-bold">
                             {uploadSuccess ? '✓' : isUploading ? '⏳' : '📸'}
                           </span>
                         </div>
-                        
-                        {/* Quality badge */}
-                        <div className="absolute bottom-3 left-3 right-3 bg-black bg-opacity-70 text-white px-3 py-2 rounded-xl">
-                          <div className="flex justify-between items-center text-sm">
-                            <span>Calidad:</span>
-                            <span className="font-bold text-green-300">Excelente ✨</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
                     
                     {/* Status message */}
-                    <div className="text-center">
-                      <p className="text-white text-lg font-semibold mb-2">
+                    <div className="text-center bg-gray-100 rounded-xl p-3 border border-gray-300">
+                      <p className="text-gray-800 text-base font-bold mb-1">
                         {uploadSuccess 
-                          ? (avatarData ? '✨ ¡Avatar de cuento creado!' : '📸 ¡Foto lista para historias!')
+                          ? (avatarData ? t('avatarCreated') : t('photoReady'))
                           : isUploading 
-                          ? '🎭 Creando tu avatar de cuento...'
-                          : '¡Foto capturada exitosamente!'
+                          ? t('creatingAvatar')
+                          : t('photoCaptured')
                         }
                       </p>
-                      <p className="text-white text-sm opacity-80">
+                      <p className="text-gray-600 text-xs">
                         {uploadSuccess 
                           ? (avatarData 
-                              ? `Tu avatar personalizado aparecerá en todas las ilustraciones${avatarData.detected_age ? ` · ${avatarData.detected_age} años` : ''}${avatarData.detected_gender ? ` · ${avatarData.detected_gender === 'male' ? 'Chico' : 'Chica'}` : ''}`
-                              : 'Tu foto se usará para crear ilustraciones personalizadas'
+                              ? `${t('youWillAppearInIllustrationsWithAge')}${avatarData.detected_age ? ` · ${avatarData.detected_age} ${t('years')}` : ''}`
+                              : t('willBeUsedForIllustrations')
                             )
                           : isUploading
-                          ? 'AWS Rekognition está analizando tu foto...'
-                          : 'Se generará automáticamente tu avatar de cuento personalizado'
+                          ? t('analyzingPhoto')
+                          : t('generatingAvatar')
                         }
                       </p>
                     </div>
@@ -415,57 +443,54 @@ const PhotoCapture = ({ onPhotoTaken, sessionId, storytellingService }) => {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className={`bg-gradient-to-r ${avatarData ? 'from-purple-500 to-pink-600' : 'from-green-500 to-emerald-600'} text-white p-4 rounded-2xl text-center`}
+                        className={`${avatarData ? 'bg-blue-100 border-blue-300' : 'bg-green-100 border-green-300'} border-2 p-3 rounded-xl text-center shadow-lg`}
                       >
-                        <div className="flex items-center justify-center gap-3 mb-2">
+                        <div className="flex items-center justify-center gap-2 mb-1">
                           <span className="text-2xl">{avatarData ? '🎭' : '📸'}</span>
-                          <span className="font-bold text-lg">
-                            {avatarData ? '¡Avatar creado!' : '¡Foto lista!'}
+                          <span className="font-bold text-base text-gray-800">
+                            {avatarData ? '¡Listo!' : '¡Perfecto!'}
                           </span>
                         </div>
-                        <p className="text-sm opacity-90">
+                        <p className="text-xs font-semibold text-gray-700">
                           {avatarData 
-                            ? 'Tu avatar de cuento aparecerá en todas las ilustraciones'
-                            : 'Tu foto se usará para crear ilustraciones personalizadas'
+                            ? t('avatarReadyForStories')
+                            : t('photoReadyForIllustrations')
                           }
                         </p>
-                        {avatarData && (
-                          <p className="text-xs opacity-75 mt-2">
-                            Generado con {avatarData.provider}
-                          </p>
-                        )}
                       </motion.div>
                     )}
                     
                     {/* Photo controls */}
-                    <div className="flex gap-4 justify-center">
+                    <div className="flex gap-3 justify-center flex-wrap">
                       <motion.button
-                        className="bg-white bg-opacity-20 text-white py-3 px-6 rounded-xl font-semibold"
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-5 rounded-xl font-bold border border-gray-300 text-sm"
                         onClick={retakePhoto}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        🔄 Tomar Otra
+                        🔄 Otra
                       </motion.button>
                       
                       {uploadSuccess && (
                         <motion.button
-                          className="bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold"
+                          className="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-xl font-bold shadow-lg text-sm"
                           onClick={confirmPhoto}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
-                          ✓ Confirmar y Continuar
+                          ✓ Confirmar
                         </motion.button>
                       )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+              </motion.div>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Hidden canvas for photo processing */}
       <canvas ref={canvasRef} className="hidden" />

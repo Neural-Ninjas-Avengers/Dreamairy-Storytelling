@@ -194,7 +194,7 @@ def test_aws_services():
     """Test AWS service connectivity and functionality"""
     try:
         data = request.get_json() or {}
-        services_to_test = data.get('services', ['bedrock', 'titan-image', 'polly', 'rekognition', 's3', 'dynamodb'])
+        services_to_test = data.get('services', ['bedrock', 'stable-diffusion', 'polly', 'rekognition', 's3', 'dynamodb'])
         
         config = config_manager.load_config()
         
@@ -217,8 +217,8 @@ def test_aws_services():
                 bedrock_config = config.get('aws', {}).get('services', {}).get('bedrock', {})
                 model_id = bedrock_config.get('modelId', 'amazon.titan-text-express-v1')
                 test_results['bedrock'] = aws_connector.test_bedrock(model_id)
-            elif service == 'titan-image':
-                test_results['titan-image'] = aws_connector.test_titan_image()
+            elif service == 'stable-diffusion':
+                test_results['stable-diffusion'] = aws_connector.test_titan_image()
             elif service == 'polly':
                 test_results['polly'] = aws_connector.test_polly()
             elif service == 'rekognition':

@@ -7,13 +7,19 @@ Handles AWS service integration and testing
 import json
 import base64
 import logging
+import io
 from datetime import datetime
 from typing import Dict, Any, Tuple
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
 class AWSConnector:
     """AWS service connector and testing utilities"""
+    
+    # Class-level rate limiting
+    _last_bedrock_call = None
+    _min_delay_between_calls = 3.0  # Minimum 3 seconds between Bedrock calls (increased for throttling)
     
     def __init__(self, credentials: Dict[str, str]):
         """Initialize AWS connector with credentials"""
@@ -26,6 +32,19 @@ class AWSConnector:
         self._rekognition_client = None
         self._s3_client = None
         self._dynamodb_client = None
+    
+    def _rate_limit_bedrock(self):
+        """Enforce rate limiting for Bedrock API calls"""
+        import time
+        
+        if AWSConnector._last_bedrock_call is not None:
+            elapsed = time.time() - AWSConnector._last_bedrock_call
+            if elapsed < self._min_delay_between_calls:
+                sleep_time = self._min_delay_between_calls - elapsed
+                logger.debug(f"⏱️ Rate limiting: sleeping {sleep_time:.2f}s")
+                time.sleep(sleep_time)
+        
+        AWSConnector._last_bedrock_call = time.time()
     
     def _get_boto3_session(self):
         """Get boto3 session with credentials"""
@@ -395,37 +414,91 @@ class AWSConnector:
             }
     
     def generate_story_with_bedrock(self, prompt: str, max_tokens: int = 1000) -> Tuple[bool, str]:
-        """Generate story using Bedrock"""
-        try:
-            client = self._get_bedrock_client()
-            
-            # Use Titan Text Express
-            body = json.dumps({
-                "inputText": prompt,
-                "textGenerationConfig": {
-                    "maxTokenCount": max_tokens,
-                    "temperature": 0.8,
-                    "topP": 0.9,
-                    "stopSequences": []
-                }
-            })
-            
-            response = client.invoke_model(
-                body=body,
-                modelId="amazon.titan-text-express-v1",
-                accept="application/json",
-                contentType="application/json"
-            )
-            
-            response_body = json.loads(response.get('body').read())
-            story_text = response_body.get('results', [{}])[0].get('outputText', '').strip()
-            
-            logger.info("Story generated successfully with Bedrock")
-            return True, story_text
-            
-        except Exception as e:
-            logger.error(f"Bedrock story generation failed: {e}")
-            return False, f"Error: {str(e)}"
+        """Generate story using Bedrock with Claude 3.5 Sonnet with retry logic for throttling"""
+        import time
+        
+        max_retries = 4  # Increased from 3 to 4
+        base_delay = 5  # Increased from 2 to 5 seconds for better throttling handling
+        
+        for attempt in range(max_retries):
+            try:
+                # Apply rate limiting before making the call
+                self._rate_limit_bedrock()
+                
+                client = self._get_bedrock_client()
+                
+                # Use Claude 3.5 Sonnet - MUCH better for creative storytelling
+                body = json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": max_tokens,
+                    "temperature": 0.8,  # Higher temperature for more creativity
+                    "top_p": 0.9,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                })
+                
+                # Use Claude 3 Sonnet - excellent for creative storytelling
+                response = client.invoke_model(
+                    body=body,
+                    modelId="anthropic.claude-3-sonnet-20240229-v1:0",  # Claude 3 Sonnet
+                    accept="application/json",
+                    contentType="application/json"
+                )
+                
+                response_body = json.loads(response.get('body').read())
+                story_text = response_body.get('content', [{}])[0].get('text', '').strip()
+                
+                logger.info("✨ Story generated successfully with Claude 3 Sonnet")
+                return True, story_text
+                
+            except Exception as e:
+                error_str = str(e)
+                
+                # Check if it's a throttling error
+                if 'ThrottlingException' in error_str or 'Too many requests' in error_str:
+                    if attempt < max_retries - 1:
+                        # Exponential backoff: 5s, 10s, 20s, 40s
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"⏳ Throttling detected (attempt {attempt + 1}/{max_retries}), waiting {delay}s before retry...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.warning(f"⚠️ Max retries ({max_retries}) reached for Claude after throttling, using Titan fallback")
+                else:
+                    logger.error(f"❌ Claude 3 Sonnet story generation failed: {e}")
+                
+                # Fallback to Titan if Claude fails or max retries reached
+                try:
+                    logger.info("🔄 Falling back to Titan Text Express...")
+                    body = json.dumps({
+                        "inputText": prompt,
+                        "textGenerationConfig": {
+                            "maxTokenCount": max_tokens,
+                            "temperature": 0.7,
+                            "topP": 0.9,
+                            "stopSequences": []
+                        }
+                    })
+                    
+                    response = client.invoke_model(
+                        body=body,
+                        modelId="amazon.titan-text-express-v1",
+                        accept="application/json",
+                        contentType="application/json"
+                    )
+                    
+                    response_body = json.loads(response.get('body').read())
+                    story_text = response_body.get('results', [{}])[0].get('outputText', '').strip()
+                    
+                    logger.info("✅ Story generated with Titan (fallback)")
+                    return True, story_text
+                except Exception as fallback_error:
+                    logger.error(f"❌ Fallback also failed: {fallback_error}")
+                return False, f"Error: {str(e)}"
     
     def synthesize_speech_with_polly(self, text: str, voice_id: str = "Joanna") -> Tuple[bool, bytes]:
         """Synthesize speech using Polly"""
@@ -501,62 +574,66 @@ class AWSConnector:
             return False, {"emotion": "neutral", "confidence": 0.0, "error": str(e)}
     
     def generate_image_with_titan(self, prompt: str, style: str = "photographic") -> Tuple[bool, str, str]:
-        """Generate image using Titan Image Generator"""
+        """Generate image using Amazon Nova Canvas"""
         try:
+            # Apply rate limiting before making the call
+            self._rate_limit_bedrock()
+            
             start_time = datetime.now()
             
-            # Validate prompt length (AWS Titan limit is 512 characters)
-            if len(prompt) > 512:
-                logger.warning(f"Prompt too long ({len(prompt)} chars), truncating to 512")
-                prompt = prompt[:509] + "..."
+            # Validate prompt length
+            if len(prompt) > 1024:
+                logger.warning(f"Prompt too long ({len(prompt)} chars), truncating to 1024")
+                prompt = prompt[:1021] + "..."
             
-            logger.info(f"Generating image with Titan: prompt length = {len(prompt)} chars")
+            logger.info(f"Generating image with Amazon Nova Canvas: prompt length = {len(prompt)} chars")
             
             client = self._get_bedrock_client()
             
-            # Prepare request body for Titan Image Generator with enhanced settings for character portraits
+            # Prepare request body for Amazon Nova Canvas
             body = json.dumps({
                 "taskType": "TEXT_IMAGE",
                 "textToImageParams": {
                     "text": prompt,
-                    "negativeText": "blurry, low quality, distorted, scary, violent, inappropriate, adult content, dark themes, realistic photography, photorealistic, amateur art, sketch, unfinished, watermark",
+                    "negativeText": "blurry, low quality, distorted, scary, violent, inappropriate, adult content, dark themes, realistic photography, amateur art, sketch, unfinished, watermark, text, words"
                 },
                 "imageGenerationConfig": {
                     "numberOfImages": 1,
-                    "height": 512,
-                    "width": 512,
-                    "cfgScale": 8.0,  # Good guidance for standard images
-                    "seed": 42  # Fixed seed for consistency
+                    "height": 1024,
+                    "width": 1024,
+                    "cfgScale": 8.0,
+                    "seed": 42,
+                    "quality": "premium"
                 }
             })
             
             response = client.invoke_model(
                 body=body,
-                modelId="amazon.titan-image-generator-v1",
+                modelId="amazon.nova-canvas-v1:0",
                 accept="application/json",
                 contentType="application/json"
             )
             
             response_body = json.loads(response.get('body').read())
             
-            # Extract image data
+            # Extract image data from Nova Canvas response
             images = response_body.get('images', [])
-            if images:
-                image_data = images[0]  # Get first image
+            if images and len(images) > 0:
+                image_data = images[0]  # Nova Canvas returns base64 directly
                 
                 # Convert to base64 data URL
-                image_url = f"data:image/jpeg;base64,{image_data}"
+                image_url = f"data:image/png;base64,{image_data}"
                 
                 end_time = datetime.now()
                 response_time = (end_time - start_time).total_seconds()
                 
-                logger.info(f"Titan image generated successfully in {response_time:.2f}s")
+                logger.info(f"Amazon Nova Canvas image generated successfully in {response_time:.2f}s")
                 return True, image_url, f"Generated in {response_time:.2f}s"
             else:
                 return False, "", "No image data in response"
                 
         except Exception as e:
-            logger.error(f"Titan image generation failed: {e}")
+            logger.error(f"Amazon Nova Canvas image generation failed: {e}")
             return False, "", str(e)
     
     def generate_storybook_avatar_with_titan(self, user_photo_base64: str, scene_description: str, child_age: int) -> Tuple[bool, str, str]:
@@ -570,6 +647,9 @@ class AWSConnector:
             if user_photo_base64.startswith('data:image'):
                 # Remove data URL prefix to get pure base64
                 user_photo_base64 = user_photo_base64.split(',')[1]
+            
+            # Resize image to meet AWS Bedrock requirements (height between 320 and 4096)
+            user_photo_base64 = self._resize_image_for_bedrock(user_photo_base64)
             
             # Create age-appropriate transformation prompt
             if child_age <= 5:
@@ -607,7 +687,7 @@ class AWSConnector:
             
             response = client.invoke_model(
                 body=body,
-                modelId="amazon.titan-image-generator-v1",
+                modelId="amazon.nova-canvas-v1:0",
                 accept="application/json",
                 contentType="application/json"
             )
@@ -782,7 +862,7 @@ class AWSConnector:
         
         response = client.invoke_model(
             body=body,
-            modelId="amazon.titan-image-generator-v1",
+            modelId="amazon.nova-canvas-v1:0",
             accept="application/json",
             contentType="application/json"
         )
@@ -882,7 +962,7 @@ class AWSConnector:
         
         response = client.invoke_model(
             body=body,
-            modelId="amazon.titan-image-generator-v1",
+            modelId="amazon.nova-canvas-v1:0",
             accept="application/json",
             contentType="application/json"
         )
@@ -916,7 +996,7 @@ class AWSConnector:
                     "success": True,
                     "service": "titan-image",
                     "response_time": response_time,
-                    "model_used": "amazon.titan-image-generator-v1",
+                    "model_used": "amazon.nova-canvas-v1:0",
                     "test_output": f"Image generated: {len(image_url)} bytes",
                     "message": message,
                     "timestamp": end_time.isoformat()
@@ -976,6 +1056,9 @@ class AWSConnector:
             else:
                 clean_photo = photo_base64
             
+            # Resize image to meet AWS Bedrock requirements
+            clean_photo = self._resize_image_for_bedrock(clean_photo)
+            
             logger.info(f"📸 Using IMAGE_VARIATION with photo ({len(clean_photo)} chars)")
             
             # Simple, safe transformation prompt
@@ -1000,7 +1083,7 @@ class AWSConnector:
             
             response = client.invoke_model(
                 body=body,
-                modelId="amazon.titan-image-generator-v1",
+                modelId="amazon.nova-canvas-v1:0",
                 accept="application/json",
                 contentType="application/json"
             )
@@ -1079,6 +1162,66 @@ class AWSConnector:
                 'clothing_description': 'colorful outfit',
                 'age_group': 'child'
             }
+    
+    def _resize_image_for_bedrock(self, photo_base64: str) -> str:
+        """Resize image to meet AWS Bedrock requirements (height between 320 and 4096 pixels)"""
+        try:
+            # Decode base64 image
+            image_bytes = base64.b64decode(photo_base64)
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            # Convert to RGB if necessary
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            width, height = image.size
+            logger.info(f"Original image size: {width}x{height}")
+            
+            # AWS Bedrock requirements: height between 320 and 4096
+            min_height = 320
+            max_height = 4096
+            target_size = 1024  # Good balance between quality and size
+            
+            # Check if resizing is needed
+            if height < min_height or height > max_height or width < min_height or width > max_height:
+                # Calculate aspect ratio
+                aspect_ratio = width / height
+                
+                # Determine new dimensions
+                if height < min_height:
+                    new_height = min_height
+                    new_width = int(new_height * aspect_ratio)
+                elif height > max_height:
+                    new_height = max_height
+                    new_width = int(new_height * aspect_ratio)
+                else:
+                    # Resize to target size for optimal quality
+                    new_height = target_size
+                    new_width = int(new_height * aspect_ratio)
+                
+                # Ensure width is also within bounds
+                if new_width < min_height:
+                    new_width = min_height
+                    new_height = int(new_width / aspect_ratio)
+                elif new_width > max_height:
+                    new_width = max_height
+                    new_height = int(new_width / aspect_ratio)
+                
+                # Resize image
+                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                logger.info(f"Resized image to: {new_width}x{new_height}")
+            
+            # Convert back to base64
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG', quality=90)
+            resized_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            return resized_base64
+            
+        except Exception as e:
+            logger.error(f"Image resizing failed: {e}")
+            # Return original if resizing fails
+            return photo_base64
 
     def _generate_personalized_avatar_safe(self, photo_base64: str, start_time: datetime) -> Tuple[bool, str, str]:
         """Generate personalized avatar using safe prompts that reference the photo"""
@@ -1340,7 +1483,7 @@ class AWSConnector:
             
             # Make request to Bedrock with v2 model
             response = bedrock_client.invoke_model(
-                modelId="amazon.titan-image-generator-v1",
+                modelId="amazon.nova-canvas-v1:0",
                 body=json.dumps(request_body),
                 contentType="application/json",
                 accept="application/json"
@@ -1415,7 +1558,7 @@ class AWSConnector:
         
         response = bedrock_client.invoke_model(
             body=body,
-            modelId="amazon.titan-image-generator-v1",
+            modelId="amazon.nova-canvas-v1:0",
             accept="application/json",
             contentType="application/json"
         )

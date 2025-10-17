@@ -50,7 +50,7 @@ async def get_current_ai_info() -> Dict[str, Any]:
                 },
                 "image_generation": {
                     "provider": "Amazon Bedrock",
-                    "model": "amazon.titan-image-generator-v1", 
+                    "model": "amazon.nova-canvas-v1:0", 
                     "type": "aws",
                     "cost": "paid",
                     "description": "AWS Bedrock with Titan Image Generator"
@@ -141,7 +141,7 @@ async def get_available_providers() -> Dict[str, Any]:
                     "description": "Managed AI service for text and image generation",
                     "models": {
                         "text": ["amazon.titan-text-express-v1"],
-                        "image": ["amazon.titan-image-generator-v1"]
+                        "image": ["amazon.nova-canvas-v1:0"]
                     },
                     "cost": "paid",
                     "quality": "high"

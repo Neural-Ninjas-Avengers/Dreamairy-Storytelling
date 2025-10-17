@@ -1,15 +1,24 @@
+// Theme services removed - using fixed design
+import illustrationStyleTracker from './IllustrationStyleTracker';
+import claudeDesignService from './ClaudeDesignService';
+
 /**
  * Main storytelling service that coordinates all story-related functionality
  * Now uses the backend API which handles AWS/free service selection automatically
+ * Enhanced with Claude design integration for dynamic theming and illustration consistency
  */
 export class StorytellingService {
     constructor() {
         this.baseUrl = 'http://localhost:3001';
         this.currentSessionId = null;
+        this.currentTheme = null;
+        this.currentAge = null;
+        this.currentEmotionalGoal = null;
+        this.themeInitialized = false;
     }
     
     /**
-     * Create a new storytelling session
+     * Create a new storytelling session with dynamic theme
      */
     async createSession(sessionData) {
         try {
@@ -30,7 +39,24 @@ export class StorytellingService {
             const result = await response.json();
             this.currentSessionId = result.session_id;
             
+            // Store session parameters for theme generation
+            this.currentAge = sessionData.age || 7;
+            this.currentEmotionalGoal = sessionData.emotional_goal || 'entertain';
+            
+            // Extract theme from preferences
+            if (sessionData.preferences && sessionData.preferences.length > 0) {
+                this.currentTheme = sessionData.preferences[0];
+            }
+            
             console.log('✅ Session created:', this.currentSessionId);
+            
+            // Initialize theme if we have all parameters (non-blocking)
+            if (this.currentTheme && this.currentAge && this.currentEmotionalGoal) {
+                // Don't await - let it run in background to avoid blocking story generation
+                this.initializeTheme().catch(err => {
+                    console.error('Theme initialization failed (non-critical):', err);
+                });
+            }
             
             return {
                 success: true,
@@ -44,6 +70,19 @@ export class StorytellingService {
                 error: error.message
             };
         }
+    }
+    
+    /**
+     * Initialize dynamic theme for the session
+     */
+    async initializeTheme() {
+        if (this.themeInitialized) {
+            console.log('Theme already initialized');
+            return;
+        }
+        
+        // Theme initialization removed - using fixed design
+        this.themeInitialized = true;
     }
     
     /**
@@ -71,12 +110,26 @@ export class StorytellingService {
         try {
             console.log('🎯 Generating story via backend API...');
             
+            // Clean storyData to avoid circular references - ensure all values are primitives
+            const cleanData = {
+                theme: String(storyData.theme || ''),
+                segments_so_far: Number(storyData.segments_so_far || 0),
+                child_age: Number(storyData.child_age || 5),
+                emotional_goal: String(storyData.emotional_goal || 'entertain'),
+                language: String(storyData.language || 'es'),
+                story_context: String(storyData.story_context || ''),
+                last_segment: String(storyData.last_segment || ''),
+                is_finale: Boolean(storyData.is_finale),
+                detected_emotion: storyData.detected_emotion ? String(storyData.detected_emotion) : undefined,
+                emotion_confidence: storyData.emotion_confidence ? Number(storyData.emotion_confidence) : undefined
+            };
+            
             const response = await fetch(`${this.getBackendUrl()}/api/v1/demo/sessions/${sessionId}/story`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(storyData)
+                body: JSON.stringify(cleanData)
             });
             
             if (!response.ok) {
@@ -116,15 +169,20 @@ export class StorytellingService {
 
     async generateImage(sessionId, imageData) {
         try {
+            const url = `${this.getBackendUrl()}/api/v1/demo/sessions/${sessionId}/generate-image`;
             console.log('🎨 Generating image via backend API...');
+            console.log('📍 URL:', url);
+            console.log('📦 Payload:', JSON.stringify(imageData, null, 2));
             
-            const response = await fetch(`${this.getBackendUrl()}/api/v1/demo/sessions/${sessionId}/generate-image`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(imageData)
             });
+            
+            console.log('📥 Response status:', response.status, response.statusText);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -140,8 +198,9 @@ export class StorytellingService {
             });
             
             return {
-                success: true,
+                success: result.success || true,
                 imageUrl: result.image_url,
+                image_url: result.image_url, // Agregar ambos formatos para compatibilidad
                 metadata: {
                     provider: result.ai_provider || 'Backend API',
                     type: result.ai_type || 'unknown',
@@ -165,17 +224,75 @@ export class StorytellingService {
 
     // Legacy methods for compatibility
     async generateStorySegment(sessionId, context) {
-        return this.generateStory(sessionId, {
+        console.log('📚 StorytellingService.generateStorySegment called with:', {
+            sessionId,
+            theme: context.theme,
+            segments_so_far: context.segments_so_far,
+            child_age: context.child_age
+        });
+        
+        const result = await this.generateStory(sessionId, {
             theme: context.theme,
             segments_so_far: context.segments_so_far || 0,
             child_age: context.child_age,
-            emotional_goal: context.emotional_goal
+            emotional_goal: context.emotional_goal,
+            language: context.language || 'es',
+            story_context: context.story_context || '',
+            last_segment: context.last_segment || '',
+            is_finale: context.is_finale || false,
+            detected_emotion: context.detected_emotion,
+            emotion_confidence: context.emotion_confidence
         });
+        
+        console.log('📚 StorytellingService.generateStorySegment result:', result);
+        return result;
     }
 
     async generateStoryImage(sessionId, imageRequest) {
-        return this.generateImage(sessionId, {
-            scene_description: imageRequest.scene_description,
+        console.log('🎨 StorytellingService.generateStoryImage called with:', {
+            sessionId,
+            hasSceneDescription: !!imageRequest.scene_description,
+            theme: imageRequest.theme,
+            hasUserPhoto: imageRequest.has_user_photo,
+            hasUserAvatar: imageRequest.has_user_avatar
+        });
+        
+        // Initialize illustration style guide if not done yet
+        if (!illustrationStyleTracker.getStyleGuide()) {
+            const theme = imageRequest.theme || this.currentTheme || 'fantasy';
+            const age = imageRequest.child_age || this.currentAge || 7;
+            const avatarDesc = imageRequest.character_description || 'friendly character';
+            
+            await illustrationStyleTracker.initializeStyleGuide(theme, age, avatarDesc);
+        }
+        
+        // Optimize prompt with Claude for better consistency
+        let optimizedPrompt = imageRequest.scene_description;
+        try {
+            const previousPrompts = illustrationStyleTracker.getPreviousPromptTexts(2);
+            const promptOptimization = await claudeDesignService.optimizeIllustrationPrompt(
+                imageRequest.scene_description,
+                imageRequest.character_description || '',
+                previousPrompts
+            );
+            
+            // Apply style guide to optimized prompt
+            optimizedPrompt = illustrationStyleTracker.getStyleConsistentPrompt(
+                promptOptimization.prompt
+            );
+            
+            console.log('✨ Prompt optimized with Claude and style guide');
+            
+        } catch (error) {
+            console.warn('Prompt optimization failed, using base prompt:', error);
+            // Apply style guide to base prompt as fallback
+            optimizedPrompt = illustrationStyleTracker.getStyleConsistentPrompt(
+                imageRequest.scene_description
+            );
+        }
+        
+        const result = await this.generateImage(sessionId, {
+            scene_description: optimizedPrompt,
             story_context: imageRequest.story_context,
             character_description: imageRequest.character_description,
             style: imageRequest.style || 'children_book',
@@ -187,6 +304,26 @@ export class StorytellingService {
             emotional_goal: imageRequest.emotional_goal,
             child_age: imageRequest.child_age
         });
+        
+        // Track prompt and image for consistency
+        if (result.success && result.imageUrl) {
+            illustrationStyleTracker.trackPrompt(
+                optimizedPrompt,
+                result.imageUrl,
+                {
+                    theme: imageRequest.theme,
+                    age: imageRequest.child_age,
+                    timestamp: new Date().toISOString()
+                }
+            );
+            
+            // Log consistency score
+            const consistencyScore = illustrationStyleTracker.getConsistencyScore();
+            console.log(`📊 Illustration consistency score: ${(consistencyScore * 100).toFixed(0)}%`);
+        }
+        
+        console.log('🎨 StorytellingService.generateStoryImage result:', result);
+        return result;
     }
 
     async requestStory(sessionId, storyData) {
@@ -235,6 +372,65 @@ export class StorytellingService {
         }
     }
 
+    async detectEmotionFromWebcam(sessionId) {
+        try {
+            console.log('📸 Capturing photo from webcam for emotion detection...');
+            
+            // Capturar foto de la webcam
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+            
+            // Esperar a que el video esté listo
+            await new Promise(resolve => {
+                video.onloadedmetadata = resolve;
+            });
+            
+            // Capturar frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            // Detener stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Convertir a base64
+            const photoBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            
+            // Enviar al backend para detección de emoción
+            const response = await fetch(`${this.getBackendUrl()}/api/v1/detect-emotion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    photo_base64: photoBase64,
+                    session_id: sessionId
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            console.log('✅ Emotion detected:', result);
+            
+            return {
+                emotion: result.emotion,
+                confidence: result.confidence,
+                allEmotions: result.all_emotions
+            };
+        } catch (error) {
+            console.error('❌ Emotion detection failed:', error);
+            return null;
+        }
+    }
+
     async sendEmotionFeedback(sessionId, emotionData) {
         try {
             console.log('🎭 Sending emotion feedback...');
@@ -266,6 +462,77 @@ export class StorytellingService {
                 success: false,
                 error: error.message
             };
+        }
+    }
+
+    async getAvailableVoices() {
+        try {
+            const response = await fetch(`${this.getBackendUrl()}/api/v1/demo/available-voices`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('🎤 Backend response:', result);
+            
+            // Extract voices based on current language
+            if (result.voices) {
+                const currentLang = this.language || 'es';
+                const langKey = currentLang === 'en' ? 'english' : 'spanish';
+                console.log('🎤 Current language:', currentLang, 'Key:', langKey);
+                
+                // If voices is an object with language keys, extract the appropriate array
+                if (typeof result.voices === 'object' && !Array.isArray(result.voices)) {
+                    const voices = result.voices[langKey] || [];
+                    console.log('🎤 Extracted voices:', voices);
+                    return voices;
+                }
+                
+                // If it's already an array, return it
+                return Array.isArray(result.voices) ? result.voices : [];
+            }
+            
+            return [];
+        } catch (error) {
+            console.error('❌ Failed to get available voices:', error);
+            // Return default voices as fallback
+            return [
+                { id: 'Lucia', name: 'Lucía', gender: 'Female', language: 'es-ES' },
+                { id: 'Enrique', name: 'Enrique', gender: 'Male', language: 'es-ES' }
+            ];
+        }
+    }
+
+    async playStoryAudio(sessionId, text, voiceId = 'Lucia') {
+        try {
+            const response = await fetch(`${this.getBackendUrl()}/api/v1/demo/sessions/${sessionId}/audio`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    voice_id: voiceId
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            // Play audio
+            if (result.audio_url) {
+                const audio = new Audio(result.audio_url);
+                await audio.play();
+            }
+            
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Failed to play audio:', error);
+            return { success: false, error: error.message };
         }
     }
 
@@ -372,7 +639,7 @@ export class StorytellingService {
     }
 
     disconnect() {
-        console.log('WebSocket disconnection (no-op)');
+        // WebSocket disconnection (no-op)
     }
 
     onMessage(handler) {

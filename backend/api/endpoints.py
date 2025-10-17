@@ -31,6 +31,7 @@ class CreateSessionRequest(BaseModel):
     preferences: List[str] = Field(default=[], description="Story themes and preferences")
     emotional_goal: EmotionalGoal = Field(default=EmotionalGoal.ENTERTAIN)
     voice_preference: Optional[str] = Field(default=None, description="Preferred voice ID")
+    name: Optional[str] = Field(default=None, description="Child's name")
 
 
 class SessionResponse(BaseModel):
@@ -99,7 +100,8 @@ async def create_session(
             age=request.age,
             preferences=request.preferences,
             emotional_goal=request.emotional_goal,
-            voice_preference=request.voice_preference
+            voice_preference=request.voice_preference,
+            name=request.name
         )
         
         # Start session through orchestrator

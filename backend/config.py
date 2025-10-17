@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     
     # AWS Service Configuration
     bedrock_model_id: str = Field(
-        default="anthropic.claude-3-sonnet-20240229-v1:0", 
+        default="anthropic.claude-3-5-sonnet-20240620-v1:0", 
         env="BEDROCK_MODEL_ID"
     )
     polly_voice_id: str = Field(default="Joanna", env="POLLY_VOICE_ID")

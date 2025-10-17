@@ -33,10 +33,122 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Configure CORS for frontend communication
-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], 
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+# Additional CORS headers for all responses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+# ===== EMOTION DETECTION ENDPOINT (Must be before blueprints) =====
+@app.route('/api/v1/detect-emotion', methods=['POST', 'OPTIONS'])
+def detect_emotion_endpoint():
+    """Detect emotion from photo using AWS Rekognition"""
+    # Handle OPTIONS preflight request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        logger.info("🎭 ===== DETECT EMOTION ENDPOINT CALLED =====")
+        data = request.get_json()
+        photo_base64 = data.get("photo_base64", "")
+        
+        if not photo_base64:
+            logger.warning("⚠️ No photo data provided")
+            return jsonify({"error": "Photo data is required"}), 400
+        
+        logger.info(f"📸 Photo received (length: {len(photo_base64)} chars)")
+        config_manager = ConfigManager()
+        credentials = config_manager.get_aws_credentials()
+        
+        if not credentials:
+            logger.warning("⚠️ AWS credentials not configured - returning mock emotion")
+            # Return mock emotion for testing
+            return jsonify({
+                "success": True,
+                "emotion": "happy",
+                "label": "Feliz",
+                "icon": "😊",
+                "confidence": 0.85,
+                "story_influence": "entertain",
+                "all_emotions": [{"type": "HAPPY", "confidence": 85}]
+            })
+        
+        logger.info("✅ AWS credentials found, initializing Rekognition...")
+        from admin.aws_connector import AWSConnector
+        aws_connector = AWSConnector(credentials)
+        photo_bytes = base64.b64decode(photo_base64.split(',')[1] if ',' in photo_base64 else photo_base64)
+        
+        logger.info("🔍 Calling AWS Rekognition detect_faces...")
+        success, faces = aws_connector.detect_faces(photo_bytes)
+        
+        if not success or not faces:
+            logger.warning("⚠️ No face detected in photo")
+            return jsonify({"success": False, "message": "No face detected"}), 200
+        
+        logger.info(f"👤 Face detected! Analyzing emotions...")
+        face = faces[0]
+        emotions = face.get('Emotions', [])
+        
+        if not emotions:
+            logger.warning("⚠️ No emotions detected in face")
+            return jsonify({"success": False, "message": "No emotions detected"}), 200
+        
+        top_emotion = max(emotions, key=lambda e: e['Confidence'])
+        logger.info(f"😊 Top emotion detected: {top_emotion['Type']} ({top_emotion['Confidence']:.1f}%)")
+        
+        emotion_map = {
+            'HAPPY': {'label': 'Feliz', 'icon': '😊', 'influence': 'entertain'},
+            'SAD': {'label': 'Triste', 'icon': '😢', 'influence': 'calm'},
+            'ANGRY': {'label': 'Enojado', 'icon': '😠', 'influence': 'calm'},
+            'CONFUSED': {'label': 'Confundido', 'icon': '😕', 'influence': 'entertain'},
+            'DISGUSTED': {'label': 'Disgustado', 'icon': '🤢', 'influence': 'entertain'},
+            'SURPRISED': {'label': 'Sorprendido', 'icon': '😲', 'influence': 'entertain'},
+            'CALM': {'label': 'Calmado', 'icon': '😌', 'influence': 'calm'},
+            'FEAR': {'label': 'Asustado', 'icon': '😨', 'influence': 'calm'}
+        }
+        
+        emotion_type = top_emotion['Type']
+        emotion_info = emotion_map.get(emotion_type, {'label': 'Neutral', 'icon': '😐', 'influence': 'entertain'})
+        
+        return jsonify({
+            "success": True,
+            "emotion": emotion_type.lower(),
+            "label": emotion_info['label'],
+            "icon": emotion_info['icon'],
+            "confidence": top_emotion['Confidence'] / 100,
+            "story_influence": emotion_info['influence'],
+            "all_emotions": [{"type": e['Type'], "confidence": e['Confidence']} for e in emotions]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error detecting emotion: {e}")
+        return jsonify({"success": False, "message": str(e)}), 200
 
 # Register admin blueprint
 app.register_blueprint(admin_bp)
+
+# Register background generator blueprint
+from api.background_generator import background_bp
+app.register_blueprint(background_bp, url_prefix='/api/v1')
+app.register_blueprint(background_bp, url_prefix='/api', name='background_legacy')  # Also register for /api/placeholder
+
+# Register Claude design blueprint
+from api.claude_design import claude_design_bp
+app.register_blueprint(claude_design_bp)
+
+# Serve admin static files
+@app.route('/admin/<path:filename>')
+def serve_admin_files(filename):
+    """Serve admin panel files"""
+    admin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'admin')
+    return send_from_directory(admin_dir, filename)
 
 # Simple in-memory storage for demo
 sessions = {}
@@ -114,7 +226,7 @@ def get_current_ai_info():
                 },
                 "image_generation": {
                     "provider": "Amazon Bedrock",
-                    "model": "amazon.titan-image-generator-v1", 
+                    "model": "amazon.nova-canvas-v1:0", 
                     "type": "aws",
                     "cost": "paid",
                     "description": "AWS Bedrock with Titan Image Generator",
@@ -209,6 +321,7 @@ def create_session():
             "emotional_goal": data.get("emotional_goal", "entertain"),
             "voice_preference": data.get("voice_preference"),
             "anonymous_id": data.get("anonymous_id"),
+            "name": data.get("name"),
             "created_at": datetime.now().isoformat(),
             "status": "active"
         }
@@ -265,21 +378,28 @@ def generate_story(session_id):
         segments_so_far = data.get("segments_so_far", 0)
         child_age = data.get("child_age", 5)
         emotional_goal = data.get("emotional_goal", "entertain")
-        gender = data.get("gender")
+        language = data.get("language", "es")  # Get language from request
+        logger.info(f"🌍 Language received from frontend: {language}")
+        # Accept both 'gender' and 'child_gender' for compatibility
+        gender = data.get("gender") or data.get("child_gender")
+        child_name = sessions.get(session_id, {}).get("name")  # Get name from session
         story_context_full = data.get("story_context", "")
         last_segment = data.get("last_segment", "")
         is_finale = data.get("is_finale", False)
         detected_emotion = data.get("detected_emotion")
         emotion_confidence = data.get("emotion_confidence", 0)
+        user_suggestion = data.get("user_suggestion", "")  # User's free-text suggestion
         
-        # Check if we should use real AWS Bedrock or demo templates
+        # Always use AWS Bedrock for story generation (demo mode removed)
         config_manager = ConfigManager()
         admin_config = config_manager.load_config()
+        
+        # Get environment and AWS settings
         environment = admin_config.get('environment', 'demo') if admin_config else 'demo'
         aws_enabled = admin_config.get('aws', {}).get('enabled', False) if admin_config else False
         using_aws = environment in ['staging', 'production'] and aws_enabled
         
-        if using_aws:
+        try:
             # Use real AWS Bedrock for story generation
             logger.info("📚 Using REAL AWS Bedrock for story generation")
             try:
@@ -298,16 +418,48 @@ def generate_story(session_id):
                 else:
                     story_context = "\nINICIA UNA NUEVA HISTORIA:"
 
-                # Build gender context
+                # Build gender and name context
+                # Normalize gender values (accept both Spanish and English)
+                is_female = gender in ["female", "niña", "girl"]
+                is_male = gender in ["male", "niño", "boy"]
+                
                 gender_desc = ""
-                if gender == "male":
-                    gender_desc = "El protagonista es un niño"
-                elif gender == "female":
-                    gender_desc = "La protagonista es una niña"
+                if child_name:
+                    if is_male:
+                        gender_desc = f"El protagonista es un niño llamado {child_name}"
+                    elif is_female:
+                        gender_desc = f"La protagonista es una niña llamada {child_name}"
+                    else:
+                        gender_desc = f"El/La protagonista se llama {child_name}"
+                else:
+                    if is_male:
+                        gender_desc = "El protagonista es un niño"
+                    elif is_female:
+                        gender_desc = "La protagonista es una niña"
                 
                 finale_instruction = ""
                 if is_finale:
-                    finale_instruction = "\n\nIMPORTANTE - FINAL:\nEste es el ÚLTIMO segmento. Concluye la historia satisfactoriamente con un final feliz."
+                    finale_instruction = """
+
+═══════════════════════════════════════════════════════════════
+🎬 CAPÍTULO FINAL - CIERRE OBLIGATORIO 🎬
+═══════════════════════════════════════════════════════════════
+
+⚠️ ESTE ES EL ÚLTIMO CAPÍTULO ⚠️
+
+REQUISITOS OBLIGATORIOS:
+1. Resuelve TODAS las tramas abiertas
+2. Da un cierre satisfactorio y emotivo
+3. Muestra cómo el protagonista ha crecido
+4. Termina con un momento cálido y reconfortante
+5. La ÚLTIMA palabra del capítulo DEBE ser exactamente: FIN
+
+IMPORTANTE: Después de la última frase de la historia, en una nueva línea, escribe:
+
+FIN
+
+═══════════════════════════════════════════════════════════════
+"""
                 
                 emotion_adaptation = ""
                 if detected_emotion and emotion_confidence > 0.6:
@@ -322,42 +474,75 @@ def generate_story(session_id):
                     }
                     emotion_adaptation = f"\n\nADAPTACIÓN EMOCIONAL (Confianza: {int(emotion_confidence*100)}%):\n{emotion_map.get(detected_emotion, 'Adapta el tono según la emoción detectada')}"
                 
-                story_prompt = f"""Eres un narrador experto en cuentos infantiles. Crea un segmento de historia mágica y envolvente que continúe naturalmente la historia anterior.
+                # Add user suggestion if provided - MAKE IT SUPER PROMINENT
+                user_suggestion_instruction = ""
+                has_user_suggestion = user_suggestion and user_suggestion.strip()
+                if has_user_suggestion:
+                    user_suggestion_instruction = f"""
 
-CONTEXTO:
-- Edad del niño: {child_age} años
-- Tema: {theme}
-- Objetivo emocional: {emotional_goal}
-- Segmento número: {segments_so_far + 1}
-{f"- {gender_desc}" if gender_desc else ""}
-{story_context}{finale_instruction}{emotion_adaptation}
+═══════════════════════════════════════════════════════════════
+🌟🌟🌟 REQUISITO OBLIGATORIO DEL NIÑO 🌟🌟🌟
+═══════════════════════════════════════════════════════════════
 
-INSTRUCCIONES PARA CONTINUIDAD:
-{"- Continúa DIRECTAMENTE desde donde terminó el último segmento" if previous_segments else "- Inicia una nueva historia original"}
-{f"- Último segmento: '{last_segment[-150:]}'" if last_segment else ""}
-- Mantén TOTAL consistencia con personajes, nombres y escenarios
-- NO repitas información ya mencionada
-- Avanza con nuevos eventos
-- Desarrolla la trama de manera natural y progresiva
-- Cada segmento debe avanzar la historia hacia adelante
-- Mantén el tono y estilo establecido en segmentos anteriores
+El niño ha pedido específicamente:
+"{user_suggestion.strip()}"
 
-INSTRUCCIONES GENERALES:
-- Creativo y original, evita clichés
-- Emocionalmente apropiado para la edad
-- Rico en detalles sensoriales (colores, sonidos, texturas)
-- Con personajes carismáticos y memorables
-- Que despierte la imaginación y curiosidad
-- En español natural y fluido
-- De 3-4 oraciones bien desarrolladas
+⚠️ ESTO ES OBLIGATORIO ⚠️
+Debes incorporar esta sugerencia de manera CENTRAL en el siguiente capítulo.
+NO es opcional. El capítulo debe girar en torno a esta idea.
+Hazlo de manera natural, creativa y emocionante.
 
-ESTILO:
-- Usa lenguaje poético pero accesible
-- Incluye elementos mágicos o sorprendentes
-- Crea atmósferas vívidas y envolventes
-- Conecta emocionalmente con el niño
-
-Genera SOLO el texto del siguiente segmento de la historia, sin introducción ni explicaciones:"""
+═══════════════════════════════════════════════════════════════
+"""
+                
+                # Build chapter structure guidance
+                chapter_guidance = ""
+                if segments_so_far == 0:
+                    chapter_guidance = """
+ESTRUCTURA DEL CAPÍTULO 1 (INICIO):
+- Presenta al protagonista y su mundo de manera cautivadora
+- Establece el tono mágico y emocionante desde la primera frase
+- Introduce un elemento de misterio o aventura que enganche
+- Termina con anticipación para el siguiente capítulo
+- ⚠️ NO escribas "FIN" - esta NO es la conclusión"""
+                elif is_finale:
+                    chapter_guidance = """
+ESTRUCTURA DEL CAPÍTULO FINAL:
+- Resuelve la aventura de manera satisfactoria
+- Muestra cómo el protagonista ha crecido o aprendido algo
+- Incluye un momento emotivo de celebración o logro
+- Termina con un cierre cálido y reconfortante
+- ✅ DEBES escribir "FIN" al final"""
+                else:
+                    chapter_guidance = f"""
+ESTRUCTURA DEL CAPÍTULO {segments_so_far + 1}:
+- Continúa DIRECTAMENTE desde donde terminó el capítulo anterior
+- Desarrolla la trama con un nuevo evento o descubrimiento
+- Mantiene el ritmo y la emoción de la historia
+- Termina con un gancho que invite a seguir leyendo
+- ⚠️ NO escribas "FIN" - la historia continúa"""
+                
+                # Import story prompts
+                from prompts.story_prompts import get_story_prompt
+                
+                # Build prompt in the selected language
+                story_prompt = get_story_prompt(
+                    language=language,
+                    user_suggestion_instruction=user_suggestion_instruction,
+                    gender_desc=gender_desc,
+                    child_name=child_name,
+                    child_age=child_age,
+                    theme=theme,
+                    segments_so_far=segments_so_far,
+                    emotional_goal=emotional_goal,
+                    story_context=story_context,
+                    previous_segments=previous_segments,
+                    last_segment=last_segment,
+                    emotion_adaptation=emotion_adaptation,
+                    finale_instruction=finale_instruction,
+                    chapter_guidance=chapter_guidance,
+                    has_user_suggestion=has_user_suggestion
+                )
                 
                 # Get credentials from config manager
                 credentials = config_manager.get_aws_credentials()
@@ -369,93 +554,22 @@ Genera SOLO el texto del siguiente segmento de la historia, sin introducción ni
                 aws_connector = AWSConnector(credentials)
                 
                 # Generate story using real AWS Bedrock
-                success, story_text = aws_connector.generate_story_with_bedrock(story_prompt, max_tokens=400)
+                # Increased max_tokens to allow complete sentences without truncation
+                success, story_text = aws_connector.generate_story_with_bedrock(story_prompt, max_tokens=800)
                 
                 if not success:
-                    logger.error("❌ AWS Bedrock story generation failed, falling back to templates")
+                    logger.error("❌ AWS Bedrock story generation failed")
                     raise Exception("AWS Bedrock failed")
                     
-                logger.info("✅ REAL AWS Bedrock story generated successfully")
-                
-            except Exception as e:
-                logger.error(f"❌ Real AWS Bedrock failed: {e}, using fallback templates")
-                # Fallback to templates if AWS fails
-                using_aws = False
-        
-        if not using_aws:
-            # Demo mode - use adaptive story templates with continuity
-            logger.info("📚 DEMO MODE: Using adaptive story templates with continuity")
+                logger.info("✅ AWS Bedrock story generated successfully")
             
-            # Get previous segments for context
-            previous_segments = stories.get(session_id, [])
-            
-            # Adaptive story generation based on previous context
-            if segments_so_far == 0:
-                # First segment - story beginnings
-                story_beginnings = {
-                    "animals": "Había una vez un pequeño conejo llamado Luna que vivía en un bosque mágico lleno de colores brillantes. Sus orejas brillaban con una luz suave cuando estaba feliz, y su cola esponjosa dejaba un rastro de estrellitas doradas por donde pasaba.",
-                    "fantasy": "En un reino de cristal vivía una pequeña hada llamada Estrella con alas que brillaban como diamantes. Su hogar era una torre de cristal rosa que se alzaba entre las nubes, donde guardaba todos los sueños de los niños del mundo.",
-                    "adventure": "El capitán Valiente navegaba por los siete mares en su barco 'La Estrella Dorada', conocido por ser el más rápido de todos los océanos. Su tripulación estaba formada por los amigos más leales que jamás había conocido.",
-                    "friendship": "En un pueblo pequeño y acogedor vivían dos mejores amigos: Sam y Alex, inseparables desde que eran muy pequeños. Cada mañana se encontraban bajo el gran roble del parque para planear sus aventuras del día."
-                }
-                story_text = story_beginnings.get(theme, story_beginnings["animals"])
+            except Exception as inner_e:
+                logger.error(f"❌ Error in AWS Bedrock generation: {inner_e}")
+                raise
                 
-            else:
-                # Continuation segments - build on previous story
-                last_segment = previous_segments[-1]['text'] if previous_segments else ""
-                
-                # Extract key elements from previous segments
-                characters = []
-                settings = []
-                
-                for segment in previous_segments:
-                    text = segment['text'].lower()
-                    # Simple character extraction
-                    if 'luna' in text: characters.append('Luna')
-                    if 'búho' in text or 'owl' in text: characters.append('Búho Sabio')
-                    if 'estrella' in text: characters.append('Estrella')
-                    if 'capitán' in text: characters.append('Capitán Valiente')
-                    if 'sam' in text: characters.append('Sam')
-                    if 'alex' in text: characters.append('Alex')
-                    
-                    # Simple setting extraction
-                    if 'bosque' in text: settings.append('bosque mágico')
-                    if 'reino' in text: settings.append('reino de cristal')
-                    if 'barco' in text or 'mar' in text: settings.append('océano')
-                    if 'pueblo' in text: settings.append('pueblo')
-                
-                # Generate continuation based on theme and context
-                continuation_templates = {
-                    "animals": [
-                        f"Luna saltó alegremente por el sendero del bosque, cuando de repente escuchó una melodía misteriosa que venía de entre los árboles antiguos. Sus orejas se iluminaron de curiosidad mientras seguía el sonido mágico.",
-                        f"El Búho Sabio apareció volando suavemente y se posó en una rama cerca de Luna. 'Pequeña Luna', dijo con voz gentil, 'hay algo especial que debes descubrir en el corazón del bosque mágico.'",
-                        f"Mientras Luna exploraba, encontró a una familia de ardillas que habían perdido su hogar. Sin dudarlo, Luna decidió ayudarlas, usando su magia especial para crear un nuevo hogar entre las ramas doradas.",
-                        f"Al final de su aventura, Luna se dio cuenta de que cada acto de bondad hacía que su luz brillara más fuerte. El bosque entero se iluminó con su alegría, y todos los animales celebraron juntos bajo las estrellas."
-                    ],
-                    "fantasy": [
-                        f"Estrella extendió sus alas brillantes y voló hacia las nubes más altas, donde descubrió un jardín secreto lleno de flores que cantaban melodías encantadas. Cada flor guardaba un deseo especial de algún niño del mundo.",
-                        f"En su búsqueda, Estrella conoció a un dragón pequeñito de color violeta que había perdido su capacidad de volar. Con su varita mágica, Estrella le devolvió la confianza y juntos volaron por el cielo estrellado.",
-                        f"El reino comenzó a recuperar su brillo cuando Estrella compartió su magia con todos los habitantes. Los cristales cantaron de alegría y las torres se llenaron de luz dorada y plateada.",
-                        f"Finalmente, Estrella comprendió que la verdadera magia no estaba en su varita, sino en su corazón bondadoso. El reino brilló más que nunca, y todos los sueños se hicieron realidad esa noche mágica."
-                    ],
-                    "adventure": [
-                        f"El Capitán Valiente y su tripulación llegaron a una isla misteriosa donde los árboles tenían hojas de colores que cambiaban con el viento. En el centro de la isla, encontraron una cueva que brillaba con luz propia.",
-                        f"Dentro de la cueva, descubrieron un mapa antiguo que mostraba el camino hacia el tesoro más valioso: la Fuente de la Amistad Eterna. El mapa solo podía ser leído por aquellos con corazones puros.",
-                        f"Durante su viaje, enfrentaron una tormenta mágica, pero trabajando juntos como un verdadero equipo, lograron navegar hacia aguas tranquilas. Su amistad se hizo más fuerte con cada desafío.",
-                        f"Al encontrar el tesoro, se dieron cuenta de que era un espejo mágico que reflejaba los momentos más felices que habían compartido juntos. Comprendieron que su amistad era el verdadero tesoro."
-                    ],
-                    "friendship": [
-                        f"Sam y Alex decidieron construir una casa del árbol en el gran roble, donde podrían guardar todos sus secretos y aventuras. Trabajaron juntos, compartiendo ideas y ayudándose mutuamente.",
-                        f"Un día, llegó un niño nuevo al pueblo que se veía muy tímido. Sam y Alex decidieron invitarlo a jugar, enseñándole todos los lugares especiales que habían descubierto juntos.",
-                        f"Cuando tuvieron una pequeña discusión sobre qué juego jugar, se dieron cuenta de que lo importante no era ganar, sino divertirse juntos. Se disculparon y crearon un juego nuevo que combinaba las ideas de ambos.",
-                        f"Su amistad se convirtió en un ejemplo para todos los niños del pueblo. Crearon un club de la amistad donde enseñaban a otros niños la importancia de cuidarse y apoyarse mutuamente."
-                    ]
-                }
-                
-                # Select appropriate continuation
-                theme_continuations = continuation_templates.get(theme, continuation_templates["animals"])
-                continuation_index = min(segments_so_far - 1, len(theme_continuations) - 1)
-                story_text = theme_continuations[continuation_index]
+        except Exception as e:
+            logger.error(f"❌ Error generating story: {e}")
+            return jsonify({"error": "Failed to generate story"}), 500
         
         # Store story segment
         story_segment = {
@@ -1094,6 +1208,8 @@ def generate_image(session_id):
         user_photo_base64 = data.get("user_photo_base64")
         theme = data.get("theme", "animals")
         style = data.get("style", "children_book")
+        # Accept both 'gender' and 'child_gender' for compatibility
+        gender = data.get("gender") or data.get("child_gender")
         
         # Get child age from session
         child_age = sessions[session_id].get("age", 5)
@@ -1108,12 +1224,12 @@ def generate_image(session_id):
         actual_service_used = "unknown"
         if has_user_photo and user_photo_base64:
             # Generate personalized AI image with user as character
-            ai_image, actual_service_used = generate_ai_image_with_tracking(scene_description, theme, style, child_age, True, user_photo_base64)
+            ai_image, actual_service_used = generate_ai_image_with_tracking(scene_description, theme, style, child_age, True, user_photo_base64, gender)
             logger.info("Generated personalized image with user character")
             has_user_character = True
         else:
             # Generate generic AI image
-            ai_image, actual_service_used = generate_ai_image_with_tracking(scene_description, theme, style, child_age, False, None)
+            ai_image, actual_service_used = generate_ai_image_with_tracking(scene_description, theme, style, child_age, False, None, gender)
             logger.info("Generated generic image")
             has_user_character = False
         
@@ -1179,7 +1295,7 @@ def generate_image(session_id):
         logger.error(f"Error generating image: {e}")
         return jsonify({"error": "Failed to generate image"}), 500
 
-def generate_ai_image_with_tracking(scene_description, theme, style, child_age, has_user_photo=False, user_photo_base64=None):
+def generate_ai_image_with_tracking(scene_description, theme, style, child_age, has_user_photo=False, user_photo_base64=None, gender=None):
     """Generate AI image using appropriate service based on configuration and return what was actually used"""
     
     # Check if we should use AWS services
@@ -1193,7 +1309,7 @@ def generate_ai_image_with_tracking(scene_description, theme, style, child_age, 
         # Try AWS Titan Image Generator first
         try:
             logger.info("🎨 Attempting to use REAL AWS Titan Image Generator")
-            image_url = generate_aws_titan_image(scene_description, theme, child_age, has_user_photo, user_photo_base64)
+            image_url = generate_aws_titan_image(scene_description, theme, child_age, has_user_photo, user_photo_base64, gender)
             logger.info("✅ Successfully used REAL AWS Titan")
             return image_url, "aws_titan"
         except Exception as e:
@@ -1207,7 +1323,7 @@ def generate_ai_image_with_tracking(scene_description, theme, style, child_age, 
     # Try Pollinations.ai first (completely free, no API key needed)
     try:
         logger.info("🎨 Attempting Pollinations.ai")
-        image_url = generate_pollinations_image(scene_description, theme, child_age, has_user_photo)
+        image_url = generate_pollinations_image(scene_description, theme, child_age, has_user_photo, gender)
         logger.info("✅ Successfully used Pollinations.ai")
         return image_url, "pollinations"
     except Exception as e:
@@ -1218,7 +1334,7 @@ def generate_ai_image_with_tracking(scene_description, theme, style, child_age, 
     if api_key and api_key != 'your_huggingface_api_key_here':
         try:
             logger.info("🎨 Attempting Hugging Face")
-            image_url = generate_huggingface_image(scene_description, theme, child_age, has_user_photo, api_key)
+            image_url = generate_huggingface_image(scene_description, theme, child_age, has_user_photo, api_key, gender)
             logger.info("✅ Successfully used Hugging Face")
             return image_url, "huggingface"
         except Exception as e:
@@ -1229,12 +1345,12 @@ def generate_ai_image_with_tracking(scene_description, theme, style, child_age, 
     image_url = generate_enhanced_svg_fallback(scene_description, theme, style, child_age, has_user_photo)
     return image_url, "svg_fallback"
 
-def generate_ai_image(scene_description, theme, style, child_age, has_user_photo=False, user_photo_base64=None):
+def generate_ai_image(scene_description, theme, style, child_age, has_user_photo=False, user_photo_base64=None, gender=None):
     """Generate AI image using appropriate service based on configuration (legacy function)"""
-    image_url, _ = generate_ai_image_with_tracking(scene_description, theme, style, child_age, has_user_photo, user_photo_base64)
+    image_url, _ = generate_ai_image_with_tracking(scene_description, theme, style, child_age, has_user_photo, user_photo_base64, gender)
     return image_url
 
-def generate_aws_titan_image(scene_description, theme, child_age, has_user_photo, user_photo_base64=None):
+def generate_aws_titan_image(scene_description, theme, child_age, has_user_photo, user_photo_base64=None, gender=None):
     """Generate image using AWS Titan Image Generator"""
     
     # Check current environment to decide if we should use real AWS or simulation
@@ -1252,7 +1368,7 @@ def generate_aws_titan_image(scene_description, theme, child_age, has_user_photo
             from admin.aws_connector import AWSConnector
             
             # Create enhanced prompt
-            base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo)
+            base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo, gender)
             logger.info(f"🎯 Enhanced prompt for AWS: {base_prompt[:100]}...")
             
             # Get credentials from config manager
@@ -1289,7 +1405,7 @@ def generate_aws_titan_image(scene_description, theme, child_age, has_user_photo
         logger.info("🎨 DEMO MODE: Simulating AWS Titan Image Generator")
         
         # Create enhanced prompt (this part works for testing)
-        base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo)
+        base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo, gender)
         logger.info(f"🎯 Enhanced prompt created (demo): {base_prompt[:100]}...")
         
         # Simulate AWS response with a simple base64 image for demo
@@ -1303,11 +1419,11 @@ def generate_aws_titan_image(scene_description, theme, child_age, has_user_photo
         
         return f"data:image/png;base64,{image_base64}"
 
-def generate_pollinations_image(scene_description, theme, child_age, has_user_photo):
+def generate_pollinations_image(scene_description, theme, child_age, has_user_photo, gender=None):
     """Generate image using Pollinations.ai (free, no API key needed)"""
     
     # Create enhanced prompt for children's book illustration
-    base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo)
+    base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo, gender)
     
     logger.info(f"🎨 Generating AI image with Pollinations.ai: {base_prompt[:100]}...")
     
@@ -1350,14 +1466,14 @@ def generate_pollinations_image(scene_description, theme, child_age, has_user_ph
     else:
         raise Exception(f"Pollinations.ai returned status {response.status_code}")
 
-def generate_huggingface_image(scene_description, theme, child_age, has_user_photo, api_key):
+def generate_huggingface_image(scene_description, theme, child_age, has_user_photo, api_key, gender=None):
     """Generate image using Hugging Face API"""
     
     # Hugging Face API configuration
     HF_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
     
     # Create enhanced prompt for children's book illustration
-    base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo)
+    base_prompt = create_enhanced_prompt(scene_description, theme, child_age, has_user_photo, gender)
     
     logger.info(f"🎨 Generating AI image with Hugging Face: {base_prompt[:100]}...")
     
@@ -1393,38 +1509,53 @@ def generate_huggingface_image(scene_description, theme, child_age, has_user_pho
             logger.warning("🔑 Invalid Hugging Face API key")
         raise Exception(f"Hugging Face returned status {response.status_code}")
 
-def create_enhanced_prompt(scene_description, theme, child_age, has_user_photo):
-    """Create enhanced prompt for AI image generation adapted to child's age"""
+def create_enhanced_prompt(scene_description, theme, child_age, has_user_photo, gender=None):
+    """Create enhanced prompt for AI image generation adapted to child's age and gender"""
+    
+    # Normalize gender values
+    is_female = gender in ["female", "niña", "girl"] if gender else False
+    is_male = gender in ["male", "niño", "boy"] if gender else False
+    
+    # Gender-specific descriptors
+    if is_female:
+        gender_desc = "girl"
+        pronoun = "her"
+    elif is_male:
+        gender_desc = "boy"
+        pronoun = "his"
+    else:
+        gender_desc = "child"
+        pronoun = "their"
     
     # Age-appropriate style adjustments with more realistic approach
     if child_age <= 3:
         # Toddlers (0-3): Simple but realistic, soft features
         style_prompt = "realistic children's illustration with soft features, gentle colors, simple composition, safe and comforting, photorealistic but child-friendly"
         complexity = "simple"
-        character_style = "realistic toddler with soft features and big expressive eyes"
+        character_style = f"realistic {gender_desc} toddler with soft features and big expressive eyes"
     elif child_age <= 5:
         # Preschoolers (4-5): Semi-realistic, engaging
         style_prompt = "semi-realistic children's book illustration, natural colors, detailed but clear, engaging and magical, photorealistic style"
         complexity = "simple"
-        character_style = "realistic preschooler with natural features and expressive face"
+        character_style = f"realistic {gender_desc} preschooler with natural features and expressive face"
     elif child_age <= 8:
         # Early elementary (6-8): Realistic with magical elements
         style_prompt = "realistic children's fantasy illustration, natural lighting, detailed environments, magical elements, photorealistic with enchanting atmosphere"
         complexity = "moderate"
-        character_style = "realistic child with natural proportions and expressive personality"
+        character_style = f"realistic {gender_desc} child with natural proportions and expressive personality"
     elif child_age <= 12:
         # Late elementary (9-12): High-quality realistic
         style_prompt = "high-quality realistic children's fantasy art, cinematic lighting, detailed backgrounds, adventure elements, photorealistic digital art"
         complexity = "detailed"
-        character_style = "realistic child character with detailed features and natural expressions"
+        character_style = f"realistic {gender_desc} character with detailed features and natural expressions"
     else:
         # Teens (13+): Fully realistic, sophisticated
         style_prompt = "photorealistic fantasy illustration, cinematic quality, complex composition, mature themes, professional digital art"
         complexity = "complex"
-        character_style = "realistic teenager with detailed facial features and natural expressions"
+        character_style = f"realistic {gender_desc} teenager with detailed facial features and natural expressions"
         style_prompt = "young adult book illustration, realistic style, complex composition, mature themes, artistic quality"
         complexity = "complex"
-        character_style = "realistic characters with depth and emotion"
+        character_style = f"realistic {gender_desc} characters with depth and emotion"
     
     # Age-appropriate theme elements
     age_appropriate_themes = {
@@ -1459,13 +1590,13 @@ def create_enhanced_prompt(scene_description, theme, child_age, has_user_photo):
     # Enhanced professional storybook avatar with personalized character integration
     if has_user_photo:
         if child_age <= 5:
-            character_prompt = f"""featuring a beautifully illustrated storybook character: a charming young protagonist with distinctive facial features, unique hair color and style, transformed into a professional children's book illustration. The character has expressive eyes, whimsical hair styling, warm facial structure and smile, dressed in beautiful age-appropriate storybook clothing, with inviting expression, {character_style}, seamlessly integrated as the main character"""
+            character_prompt = f"""featuring a beautifully illustrated storybook character: a charming young {gender_desc} protagonist with distinctive facial features, unique hair color and style, transformed into a professional children's book illustration. The {gender_desc} has expressive eyes, whimsical hair styling, warm facial structure and smile, dressed in beautiful age-appropriate storybook clothing, with inviting expression, {character_style}, seamlessly integrated as the main character"""
         elif child_age <= 8:
-            character_prompt = f"""featuring a professionally illustrated storybook avatar: an adventurous young protagonist who maintains distinctive facial features, unique hair characteristics, rendered in high-quality children's book art style. The character has precise facial features, authentic hair color and style, genuine personality reflected in expression, elegant adventure-ready clothing, {character_style}, perfectly integrated as the story's hero"""
+            character_prompt = f"""featuring a professionally illustrated storybook avatar: an adventurous young {gender_desc} protagonist who maintains distinctive facial features, unique hair characteristics, rendered in high-quality children's book art style. The {gender_desc} has precise facial features, authentic hair color and style, genuine personality reflected in expression, elegant adventure-ready clothing, {character_style}, perfectly integrated as the story's hero"""
         elif child_age <= 12:
-            character_prompt = f"""featuring a masterfully crafted storybook character portrait: a brave young protagonist whose illustration captures distinctive features while achieving professional children's literature standards. The character has unique facial features, authentic hair representation, personality shining through, sophisticated story-appropriate attire, {character_style}, positioned as the story's protagonist"""
+            character_prompt = f"""featuring a masterfully crafted storybook character portrait: a brave young {gender_desc} protagonist whose illustration captures distinctive features while achieving professional children's literature standards. The {gender_desc} has unique facial features, authentic hair representation, personality shining through, sophisticated story-appropriate attire, {character_style}, positioned as the story's protagonist"""
         else:
-            character_prompt = f"""featuring an expertly illustrated young hero: a courageous protagonist whose portrait maintains distinctive features while achieving award-winning children's literature quality. The character has unique facial accuracy, authentic hair representation, individual character and confidence captured, mature adventure-appropriate clothing, {character_style}, established as the story's leader"""
+            character_prompt = f"""featuring an expertly illustrated young hero: a courageous {gender_desc} protagonist whose portrait maintains distinctive features while achieving award-winning children's literature quality. The {gender_desc} has unique facial accuracy, authentic hair representation, individual character and confidence captured, mature adventure-appropriate clothing, {character_style}, established as the story's leader"""
     else:
         character_prompt = f"with {character_style}, age-appropriate for young readers"
     
@@ -1904,7 +2035,6 @@ def get_theme_elements(theme, colors):
     return elements.get(theme, elements["animals"])
 
 
-
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
@@ -1931,38 +2061,52 @@ if __name__ == '__main__':
         threaded=True
     )
 
-@app.route('/api/v1/detect-emotion', methods=['POST'])
+@app.route('/api/v1/detect-emotion', methods=['POST', 'OPTIONS'])
 def detect_emotion():
     """Detect emotion from photo using AWS Rekognition"""
+    # Handle OPTIONS preflight request
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     try:
+        logger.info("🎭 ===== DETECT EMOTION ENDPOINT CALLED =====")
         data = request.get_json()
         photo_base64 = data.get("photo_base64", "")
         
         if not photo_base64:
+            logger.warning("⚠️ No photo data provided")
             return jsonify({"error": "Photo data is required"}), 400
         
+        logger.info(f"📸 Photo received (length: {len(photo_base64)} chars)")
         config_manager = ConfigManager()
         credentials = config_manager.get_aws_credentials()
         
         if not credentials:
+            logger.warning("⚠️ AWS credentials not configured - returning failure")
             return jsonify({"success": False, "message": "AWS not configured"}), 200
         
+        logger.info("✅ AWS credentials found, initializing Rekognition...")
         from admin.aws_connector import AWSConnector
         aws_connector = AWSConnector(credentials)
         photo_bytes = base64.b64decode(photo_base64.split(',')[1] if ',' in photo_base64 else photo_base64)
         
+        logger.info("🔍 Calling AWS Rekognition detect_faces...")
         success, faces = aws_connector.detect_faces(photo_bytes)
         
         if not success or not faces:
+            logger.warning("⚠️ No face detected in photo")
             return jsonify({"success": False, "message": "No face detected"}), 200
         
+        logger.info(f"👤 Face detected! Analyzing emotions...")
         face = faces[0]
         emotions = face.get('Emotions', [])
         
         if not emotions:
+            logger.warning("⚠️ No emotions detected in face")
             return jsonify({"success": False, "message": "No emotions detected"}), 200
         
         top_emotion = max(emotions, key=lambda e: e['Confidence'])
+        logger.info(f"😊 Top emotion detected: {top_emotion['Type']} ({top_emotion['Confidence']:.1f}%)")
         
         emotion_map = {
             'HAPPY': {'label': 'Feliz', 'icon': '😊', 'influence': 'entertain'},

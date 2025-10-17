@@ -77,6 +77,17 @@
                 <button class="btn" onclick="testAWSConfig()">☁️ Test AWS</button>
                 <button class="btn" onclick="testStoryGeneration()">📚 Test Stories</button>
             </div>
+
+            <div class="card">
+                <h3>🎨 Design Tools</h3>
+                <div class="status">Claude-powered design assistant</div>
+                <button class="btn" onclick="openDesignStudio()" style="font-size: 1.2rem; padding: 1.5rem; width: 100%;">
+                    🎨 Open Design Studio
+                </button>
+                <p style="font-size: 0.85rem; margin-top: 1rem; opacity: 0.8;">
+                    Generate color palettes, optimize prompts, create SVG assets, and chat with Claude about design
+                </p>
+            </div>
         </div>
 
         <div class="card" style="margin-top: 2rem;">
@@ -317,6 +328,10 @@
         function openBackendAPI() { window.open(`${BACKEND_URL}`, '_blank'); }
         function openApp() { window.open('http://localhost:3000', '_blank'); }
         function openAdmin() { window.open('http://localhost:3000', '_blank'); }
+        function openDesignStudio() { 
+            addLog('🎨 Opening Design Studio...');
+            window.open(`${BACKEND_URL}/admin/design-studio.html`, '_blank'); 
+        }
         function clearLog() { document.getElementById('logContainer').innerHTML = ''; }
 
         // Initialize

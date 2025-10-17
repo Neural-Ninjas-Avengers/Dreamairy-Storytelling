@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ModernWelcomeScreen from './components/ModernWelcomeScreen';
-import ModernStoryArea from './components/ModernStoryArea';
+import './styles/child-friendly.css';
+import ChildFriendlyWelcomeScreen from './components/ChildFriendlyWelcomeScreen';
+import ChildFriendlyStoryArea from './components/ChildFriendlyStoryArea';
 import AdminDashboard from './components/AdminDashboard';
 import AIInfoDisplay from './components/AIInfoDisplay';
 import LoadingModal from './components/LoadingModal';
 import { StorytellingService } from './services/StorytellingService';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
-function App() {
+function AppContent() {
+  const { t } = useLanguage();
   // Check if we're on admin route
   const isAdminRoute = window.location.pathname === '/admin' || window.location.hash === '#/admin';
   
@@ -17,6 +19,7 @@ function App() {
   const [selectedEmotion, setSelectedEmotion] = useState('entertain'); // Default emotion
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [selectedGender, setSelectedGender] = useState(null);
+  const [childName, setChildName] = useState('');
   const [storyService, setStoryService] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
@@ -49,7 +52,7 @@ function App() {
     if (!storyService || !selectedAge || !selectedTheme) return;
 
     setIsLoading(true);
-    setLoadingMessage('Creando tu historia mágica...');
+    setLoadingMessage(t('generatingStory'));
 
     try {
       const session = await storyService.createSession({
@@ -58,7 +61,8 @@ function App() {
         emotional_goal: selectedEmotion,
         voice_preference: null,
         anonymous_id: 'react_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11),
-        gender: selectedGender
+        gender: selectedGender,
+        name: childName
       });
       
       if (!session.success) {
@@ -71,7 +75,7 @@ function App() {
       // Upload photo if captured
       if (capturedPhoto && capturedPhoto.base64) {
         try {
-          setLoadingMessage('Subiendo tu foto...');
+          setLoadingMessage(t('processing'));
           await storyService.uploadUserPhoto(newSessionId, capturedPhoto.base64);
           console.log('Photo uploaded to session:', newSessionId);
         } catch (error) {
@@ -79,7 +83,7 @@ function App() {
         }
       }
       
-      setLoadingMessage('Preparando tu aventura...');
+      setLoadingMessage(t('pleaseWait'));
       setCurrentScreen('story');
       setIsLoading(false);
     } catch (error) {
@@ -149,67 +153,7 @@ function App() {
   };
 
   return (
-    <LanguageProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-        {/* Premium background overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-indigo-600/10 to-purple-600/20"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-transparent"></div>
-        {/* Premium animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${2 + Math.random() * 4}px`,
-                height: `${2 + Math.random() * 4}px`,
-                background: `linear-gradient(45deg, rgba(59, 130, 246, ${0.3 + Math.random() * 0.4}), rgba(147, 51, 234, ${0.2 + Math.random() * 0.3}))`,
-                boxShadow: `0 0 ${10 + Math.random() * 20}px rgba(59, 130, 246, 0.3)`,
-              }}
-              animate={{
-                y: [0, -150 - Math.random() * 100, 0],
-                x: [0, Math.random() * 50 - 25, 0],
-                opacity: [0.2, 0.8, 0.2],
-                scale: [0.8, 1.2, 0.8],
-              }}
-              transition={{
-                duration: 8 + Math.random() * 6,
-                repeat: Infinity,
-                delay: Math.random() * 8,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-          
-          {/* Floating geometric shapes */}
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={`geo-${i}`}
-              className="absolute opacity-10"
-              style={{
-                left: `${10 + Math.random() * 80}%`,
-                top: `${10 + Math.random() * 80}%`,
-                width: `${40 + Math.random() * 60}px`,
-                height: `${40 + Math.random() * 60}px`,
-                background: `linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))`,
-                borderRadius: i % 2 === 0 ? '50%' : '20%',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-              }}
-              animate={{
-                rotate: [0, 360],
-                scale: [1, 1.1, 1],
-                opacity: [0.05, 0.15, 0.05],
-              }}
-              transition={{
-                duration: 20 + Math.random() * 10,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            />
-          ))}
-        </div>
+    <div className="h-screen overflow-hidden">
       
       {/* AI Info Display - shows current AI services */}
       <AIInfoDisplay />
@@ -217,7 +161,7 @@ function App() {
       {/* Loading Modal */}
       <LoadingModal isOpen={isLoading} message={loadingMessage} />
       
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-2 sm:p-4">
+      <div className="relative z-10 h-screen flex items-center justify-center overflow-hidden">
         <AnimatePresence mode="wait">
           {currentScreen === 'welcome' && (
             <motion.div
@@ -227,23 +171,22 @@ function App() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.6 }}
-              className="w-full max-w-sm sm:max-w-md lg:max-w-lg h-screen max-h-screen flex items-center"
+              className="w-full h-full"
             >
-              <ModernWelcomeScreen
+              <ChildFriendlyWelcomeScreen
                 selectedAge={selectedAge}
-                selectedEmotion={selectedEmotion}
                 selectedTheme={selectedTheme}
                 selectedGender={selectedGender}
+                childName={childName}
                 onAgeSelect={setSelectedAge}
-                onEmotionSelect={setSelectedEmotion}
                 onThemeSelect={setSelectedTheme}
                 onGenderSelect={setSelectedGender}
+                onNameChange={setChildName}
                 onStartStory={handleStartStory}
                 onPhotoTaken={handlePhotoTaken}
+                capturedPhoto={capturedPhoto}
                 sessionId={sessionId}
                 storytellingService={storyService}
-                capturedPhoto={capturedPhoto}
-                onNavigateToAdmin={navigateToAdmin}
               />
             </motion.div>
           )}
@@ -256,16 +199,16 @@ function App() {
               animate="animate"
               exit="exit"
               transition={{ duration: 0.6 }}
-              className="w-full max-w-6xl"
+              className="w-full h-full"
             >
-              <ModernStoryArea
+              <ChildFriendlyStoryArea
                 storyService={storyService}
                 sessionId={sessionId}
                 selectedAge={selectedAge}
-                selectedEmotion={selectedEmotion}
                 selectedTheme={selectedTheme}
                 selectedGender={selectedGender}
                 capturedPhoto={capturedPhoto}
+                childName={childName}
                 onEndSession={handleEndSession}
               />
             </motion.div>
@@ -287,6 +230,13 @@ function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
     </LanguageProvider>
   );
 }

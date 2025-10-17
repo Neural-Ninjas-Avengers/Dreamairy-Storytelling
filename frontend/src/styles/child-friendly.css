@@ -1,0 +1,132 @@
+/* Estilos específicos para el diseño infantil */
+
+/* Fuentes más amigables para niños */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Nunito:wght@300;400;600;700;800&display=swap');
+
+.child-friendly-font {
+  font-family: 'Nunito', sans-serif;
+}
+
+.child-friendly-title {
+  font-family: 'Fredoka One', cursive;
+}
+
+/* Animaciones divertidas */
+@keyframes bounce-gentle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes wiggle {
+  0%, 7% {
+    transform: rotateZ(0);
+  }
+  15% {
+    transform: rotateZ(-15deg);
+  }
+  20% {
+    transform: rotateZ(10deg);
+  }
+  25% {
+    transform: rotateZ(-10deg);
+  }
+  30% {
+    transform: rotateZ(6deg);
+  }
+  35% {
+    transform: rotateZ(-4deg);
+  }
+  40%, 100% {
+    transform: rotateZ(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Clases de utilidad para animaciones */
+.animate-bounce-gentle {
+  animation: bounce-gentle 2s infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Botones con estilo infantil - Cyan/Turquoise theme */
+.btn-child-primary {
+  background: linear-gradient(135deg, #015054, #03a8af);
+  border: none;
+  border-radius: 25px;
+  padding: 15px 30px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 20px rgba(1, 80, 84, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-child-primary:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 12px 25px rgba(3, 168, 175, 0.5);
+}
+
+/* Cards con estilo infantil */
+.card-child {
+  background: white;
+  border-radius: 25px;
+  padding: 25px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+.card-child:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+/* Gradientes coloridos para fondos - Cyan/Turquoise theme */
+.bg-child-gradient-1 {
+  background: linear-gradient(135deg, #004145 0%, #015054 100%);
+}
+
+.bg-child-gradient-2 {
+  background: linear-gradient(135deg, #015054 0%, #035457 100%);
+}
+
+.bg-child-gradient-3 {
+  background: linear-gradient(135deg, #015054 0%, #03a8af 100%);
+}
+
+.bg-child-gradient-4 {
+  background: linear-gradient(135deg, #03a8af 0%, #38f9d7 100%);
+}
+
+.bg-child-gradient-5 {
+  background: linear-gradient(135deg, #004952 0%, #01c5cf 100%);
+}

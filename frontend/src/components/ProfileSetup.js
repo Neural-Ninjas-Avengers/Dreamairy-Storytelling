@@ -37,7 +37,7 @@ const ProfileSetup = ({
         transition={{ delay: 0.3 }}
       >
         <h3 className="text-2xl font-semibold mb-4 text-kiro-100">
-          ¿Cuántos años tienes?
+          {t('howOldQuestion')}
         </h3>
         <div className="flex gap-3 justify-center flex-wrap">
           {ages.map((age, index) => (
@@ -71,7 +71,7 @@ const ProfileSetup = ({
         transition={{ delay: 0.5 }}
       >
         <h3 className="text-2xl font-semibold mb-4 text-kiro-100">
-          ¿Cómo te quieres sentir?
+          {t('howDoYouFeel')}
         </h3>
         <EmotionSelector
           selectedEmotion={selectedEmotion}
@@ -93,7 +93,7 @@ const ProfileSetup = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          ¡Comenzar Aventura!
+          {t('beginAdventure')}
         </motion.button>
         
         <motion.button

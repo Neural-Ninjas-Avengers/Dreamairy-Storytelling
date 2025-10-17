@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Studio - DreamAIry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-content {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover {
+            background: #e9ecef;
+        }
+
+        .nav-item.active {
+            background: var(--color-primary, #667eea);
+            color: white;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--color-primary, #667eea);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .btn-generate {
+            background: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .color-swatch {
+            text-align: center;
+        }
+
+        .color-box {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .color-box:hover {
+            transform: scale(1.05);
+        }
+
+        .color-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .color-value {
+            font-size: 14px;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        .copy-btn {
+            float: right;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Design Studio</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='simple-admin.html'">
+                    ← Back to Admin
+                </button>
+                <button class="btn btn-primary" onclick="exportDesign()">
+                    💾 Export
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="nav-item active" onclick="switchTab('palettes')">
+                    <span class="nav-icon">🎨</span>
+                    <span>Color Palettes</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('prompts')">
+                    <span class="nav-icon">✨</span>
+                    <span>Prompt Optimizer</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('svg')">
+                    <span class="nav-icon">🖼️</span>
+                    <span>SVG Generator</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('chat')">
+                    <span class="nav-icon">💬</span>
+                    <span>Claude Chat</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('preview')">
+                    <span class="nav-icon">👁️</span>
+                    <span>Live Preview</span>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Color Palettes Tab -->
+                <div id="palettes-tab" class="tab-content active">
+                    <div class="section">
+                        <h2 class="section-title">Generate Color Palette</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Theme</label>
+                            <select id="palette-theme" class="form-select">
+                                <option value="animals">Animals</option>
+                                <option value="fantasy" selected>Fantasy</option>
+                                <option value="adventure">Adventure</option>
+                                <option value="friendship">Friendship</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Child's Age</label>
+                            <input type="number" id="palette-age" class="form-input" value="7" min="3" max="12">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Emotional Goal</label>
+                            <select id="palette-emotion" class="form-select">
+                                <option value="entertain" selected>Entertain</option>
+                                <option value="calm">Calm</option>
+                                <option value="stimulate">Stimulate</option>
+                            </select>
+                        </div>
+
+                        <button class="btn-generate" onclick="generatePalette()" id="generate-palette-btn">
+                            Generate Palette
+                        </button>
+
+                        <div id="palette-result" class="result-box" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3>Generated Palette</h3>
+                                <span id="palette-status" class="status-badge"></span>
+                            </div>
+                            <div id="palette-colors" class="color-palette"></div>
+                            <button class="btn btn-primary" style="margin-top: 16px;" onclick="applyPaletteToApp()">
+                                💾 Save & Apply to App
+                            </button>
+                            <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                                Saves to localStorage. Refresh preview or open app in new tab to see changes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Optimizer Tab -->
+                <div id="prompts-tab" class="tab-content">
+                    <div class="section">
+                        <h2 class="section-title">Optimize Illustration Prompt</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Story Segment</label>
+                            <textarea id="prompt-story" class="form-textarea" placeholder="Enter the story text...">The wizard discovers a hidden cave with glowing crystals</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Avatar Description</label>
+                            <input type="text" id="prompt-avatar" class="form-input" placeholder="e.g., young wizard with blue robes" value="young wizard with blue robes">
+                        </div>
+
+                        <button class="btn-generate" onclick="optimizePrompt()" id="optimize-prompt-btn">
+                            Optimize Prompt
+                        </button>
+
+                        <div id="prompt-result" class="result-box" style="display: none;">
+                            <h3>Optimized Prompt</h3>
+                            <div class="code-block">
+                                <button class="copy-btn" onclick="copyToClipboard('optimized-prompt-text')">Copy</button>
+                                <pre id="optimized-prompt-text"></pre>
+                            </div>
+                            
+                            <h4 style="margin-top: 20px;">Fallback Prompts</h4>
+                            <div id="fallback-prompts"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SVG Generator Tab -->
+                <div id="svg-tab" class="tab-content">
+                    <div class="section">
+                        <h2 class="section-title">Generate SVG Asset</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Description</label>
+                            <input type="text" id="svg-description" class="form-input" placeholder="e.g., magical star, cute cloud, sparkle" value="magical star">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Style</label>
+                            <select id="svg-style" class="form-select">
+                                <option value="icon">Icon</option>
+                                <option value="decoration">Decoration</option>
+                                <option value="illustration">Illustration</option>
+                            </select>
+                        </div>
+
+                        <button class="btn-generate" onclick="generateSVG()" id="generate-svg-btn">
+                            Generate SVG
+                        </button>
+
+                        <div id="svg-result" class="result-box" style="display: none;">
+                            <div class="grid-2">
+                                <div>
+                                    <h3>SVG Preview</h3>
+                                    <div id="svg-preview" style="background: #f0f0f0; padding: 40px; border-radius: 8px; text-align: center; margin-top: 12px;"></div>
+                                </div>
+                                <div>
+                                    <h3>SVG Code</h3>
+                                    <div class="code-block">
+                                        <button class="copy-btn" onclick="copyToClipboard('svg-code-text')">Copy</button>
+                                        <pre id="svg-code-text"></pre>
+                                    </div>
+                                    <button class="btn btn-primary" style="margin-top: 12px;" onclick="downloadSVG()">
+                                        Download SVG
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Claude Chat Tab -->
+                <div id="chat-tab" class="tab-content">
+                    <div class="section">
+                        <h2 class="section-title">Chat with Claude</h2>
+                        
+                        <div id="chat-messages" style="height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #f8f9fa;">
+                            <div style="text-align: center; color: #999; padding: 40px;">
+                                Start a conversation with Claude about design...
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px;">
+                            <input type="text" id="chat-input" class="form-input" placeholder="Ask Claude about design..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+                            <button class="btn-generate" onclick="sendChatMessage()" id="send-chat-btn" style="padding: 12px 24px;">
+                                Send
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 12px;">
+                            <strong>Example prompts:</strong>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <button class="btn btn-secondary" onclick="setPrompt('Suggest a color palette for a space theme')">Space theme colors</button>
+                                <button class="btn btn-secondary" onclick="setPrompt('How can I make my buttons more child-friendly?')">Child-friendly buttons</button>
+                                <button class="btn btn-secondary" onclick="setPrompt('What are best practices for age 5 UI?')">Age 5 UI tips</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Preview Tab -->
+                <div id="preview-tab" class="tab-content">
+                    <div class="section">
+                        <h2 class="section-title">Live Preview</h2>
+                        <p style="color: #666; margin-bottom: 16px;">Preview how your designs look in the actual app</p>
+                        
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="setPreviewDevice('mobile')">📱 Mobile</button>
+                            <button class="btn btn-secondary" onclick="setPreviewDevice('tablet')">📱 Tablet</button>
+                            <button class="btn btn-secondary" onclick="setPreviewDevice('desktop')">🖥️ Desktop</button>
+                            <button class="btn btn-primary" onclick="refreshPreview()">🔄 Refresh</button>
+                            <button class="btn btn-primary" onclick="openInNewTab()">🔗 Open in New Tab</button>
+                        </div>
+
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;">
+                            <strong>💡 Tip:</strong> After applying a palette, click "🔄 Refresh" to see changes in the preview, 
+                            or "🔗 Open in New Tab" to see it in a full window.
+                        </div>
+
+                        <iframe id="preview-frame" class="preview-frame" src="http://localhost:3000"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="design-studio.js"></script>
+</body>
+</html>

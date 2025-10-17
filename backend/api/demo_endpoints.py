@@ -59,6 +59,12 @@ class ImageGenerationRequest(BaseModel):
     scene_description: str
     style: str = "children_book"
     has_user_photo: bool = False
+    has_user_avatar: bool = False
+    user_photo_base64: Optional[str] = None
+    user_avatar_url: Optional[str] = None
+    theme: Optional[str] = None
+    child_age: Optional[int] = None
+    child_gender: Optional[str] = None  # ✅ CRITICAL: Gender for image generation
 
 
 class ImageGenerationResponse(BaseModel):
@@ -111,18 +117,27 @@ class AIImageGenerator:
     async def generate_story_image(self, session_id: str, request: ImageGenerationRequest) -> ImageGenerationResponse:
         """Generate AI image for story with optional user photo integration."""
         
+        logger.info(f"🖼️ generate_story_image called for session: {session_id}")
+        logger.info(f"📋 Request style: {request.style}")
+        logger.info(f"📝 Scene description: {request.scene_description[:100]}...")
+        
         start_time = datetime.utcnow()
         
         try:
             # Build the prompt
+            logger.info("🔨 Building image prompt...")
             prompt = self._build_image_prompt(request, session_id)
+            logger.info(f"✅ Prompt built: {prompt[:200]}...")
             
-            # Use real AI service
-            image_url = await ai_image_service.generate_image(prompt, request.style)
+            # Use real AI service (note: generate_image is sync, not async)
+            logger.info("🎨 Calling AI image service...")
+            image_url = ai_image_service.generate_image(prompt, request.style)
+            logger.info(f"📥 AI service returned: {image_url[:100] if image_url else 'None'}...")
             
             generation_time = (datetime.utcnow() - start_time).total_seconds()
             
             if image_url:
+                logger.info(f"✅ Image generated successfully in {generation_time:.2f}s")
                 response = ImageGenerationResponse(
                     image_url=image_url,
                     generation_time=generation_time,
@@ -136,10 +151,13 @@ class AIImageGenerator:
                 
                 return response
             else:
+                logger.warning("⚠️ AI service returned no image, using fallback")
                 raise Exception("AI service returned no image")
             
         except Exception as e:
-            logger.error(f"Error generating story image: {e}")
+            logger.error(f"❌ Error generating story image: {e}")
+            import traceback
+            logger.error(f"📍 Traceback: {traceback.format_exc()}")
             # Return fallback image
             return ImageGenerationResponse(
                 image_url="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjNjM2NkYxIi8+Cjx0ZXh0IHg9IjI1NiIgeT0iMjU2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+8J+OqCBJbWFnZW4gZGUgQ3VlbnRvIPCfjonwn5qA8J+MnzwvdGV4dD4KPC9zdmc+",
@@ -151,18 +169,51 @@ class AIImageGenerator:
     def _build_image_prompt(self, request: ImageGenerationRequest, session_id: str) -> str:
         """Build AI image generation prompt."""
         
+        # Log gender for debugging
+        if request.child_gender:
+            logger.info(f"🎭 Image generation - Gender received: '{request.child_gender}'")
+        else:
+            logger.warning("⚠️ Image generation - No gender provided")
+        
+        # Start with scene description
         base_prompt = f"{request.scene_description}"
         
-        # Add character description
+        # Add explicit gender specification FIRST for emphasis
+        if request.child_gender:
+            if request.child_gender.lower() in ['niña', 'girl', 'female']:
+                base_prompt += " IMPORTANT: The main character is a GIRL (una niña)."
+                logger.info("✅ Image prompt set to GIRL")
+            elif request.child_gender.lower() in ['niño', 'boy', 'male']:
+                base_prompt += " IMPORTANT: The main character is a BOY (un niño)."
+                logger.info("✅ Image prompt set to BOY")
+        
+        # Add character description with avatar/photo context
         if request.character_description:
-            if request.has_user_photo and session_id in self.user_photos:
-                base_prompt += f" featuring a child character that looks like the provided photo, {request.character_description}"
+            if request.has_user_avatar and request.user_avatar_url:
+                base_prompt += f" The main character is a child who looks like the avatar provided, {request.character_description}"
+            elif request.has_user_photo and request.user_photo_base64:
+                base_prompt += f" The main character is a child who looks like the photo provided, {request.character_description}"
             else:
                 base_prompt += f" featuring {request.character_description}"
+        
+        # Add theme context if provided
+        if request.theme:
+            theme_contexts = {
+                "animals": "with friendly animals and nature elements",
+                "space": "with stars, planets, and cosmic elements",
+                "pirates": "with pirate ships, treasure, and ocean adventure",
+                "dinosaurs": "with prehistoric creatures and ancient landscapes",
+                "magic": "with magical sparkles, wands, and enchanted elements",
+                "superheroes": "with heroic poses, capes, and action elements"
+            }
+            theme_addition = theme_contexts.get(request.theme, "")
+            if theme_addition:
+                base_prompt += f" {theme_addition}"
         
         # Add style specifications
         style_prompts = {
             "children_book": "in a colorful children's book illustration style, warm and friendly, soft lighting",
+            "semi_realistic_children": "in a semi-realistic children's illustration style, vibrant colors, engaging and age-appropriate",
             "watercolor": "in watercolor painting style, soft edges, gentle colors",
             "cartoon": "in cartoon animation style, bright colors, expressive characters",
             "realistic": "in realistic style with magical elements, detailed and immersive",
@@ -172,8 +223,12 @@ class AIImageGenerator:
         style_addition = style_prompts.get(request.style, style_prompts["children_book"])
         base_prompt += f", {style_addition}"
         
+        # Add age-appropriate context
+        if request.child_age:
+            base_prompt += f", appropriate for {request.child_age} year old children"
+        
         # Add safety and appropriateness filters
-        base_prompt += ", safe for children, appropriate content, positive atmosphere"
+        base_prompt += ", safe for children, appropriate content, positive atmosphere, no scary elements"
         
         return base_prompt
     
@@ -684,14 +739,21 @@ async def create_demo_session(request: dict):
     """Create a demo session with simplified API."""
     
     try:
+        # Log incoming request for debugging
+        logger.info(f"📥 Creating session with request data: age={request.get('age')}, gender={request.get('gender')}, name={request.get('name')}")
+        
         # Create child profile from request
         child_profile = ChildProfile(
             age=request.get("age", 6),
             preferences=request.get("preferences", ["animals"]),
             emotional_goal=EmotionalGoal(request.get("emotional_goal", "entertain")),
             voice_preference=request.get("voice_preference"),
-            anonymous_id=request.get("anonymous_id", f"demo_{datetime.utcnow().timestamp()}")
+            anonymous_id=request.get("anonymous_id", f"demo_{datetime.utcnow().timestamp()}"),
+            gender=request.get("gender"),
+            name=request.get("name")
         )
+        
+        logger.info(f"👤 Child profile created: age={child_profile.age}, gender={child_profile.gender}, name={child_profile.name}")
         
         # Start session through orchestrator
         session_id = await orchestrator.start_session(child_profile)
@@ -732,6 +794,8 @@ async def generate_demo_story(session_id: str, request: dict = None):
             session_id=session_uuid,
             theme=context_data.get("theme", session.child_profile.preferences[0] if session.child_profile.preferences else "animals"),
             target_age=session.child_profile.age,
+            target_gender=session.child_profile.gender,  # ✅ CRITICAL: Include gender for story continuity
+            target_language=context_data.get("language", "en"),  # ✅ CRITICAL: Include language for story generation
             current_segment="",
             characters=[],
             setting="",
@@ -961,10 +1025,14 @@ async def upload_user_photo(session_id: str, photo_data: str = Form(...)):
 async def generate_story_image(session_id: str, request: ImageGenerationRequest):
     """Generate AI image for story scene with optional user photo integration."""
     
+    logger.info(f"🎯 ENDPOINT CALLED: /demo/sessions/{session_id}/generate-image")
+    logger.info(f"📋 Request data: style={request.style}, theme={request.theme}, age={request.child_age}")
+    
     try:
         # Check if user has uploaded a photo
         has_photo = ai_image_generator.get_user_photo(session_id) is not None
         request.has_user_photo = has_photo
+        logger.info(f"📸 User photo status: {has_photo}")
         
         # Generate the image
         response = await ai_image_generator.generate_story_image(session_id, request)

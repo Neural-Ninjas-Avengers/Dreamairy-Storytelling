@@ -176,9 +176,10 @@ class StoryOrchestrator(StoryOrchestratorInterface):
             
             # Generate next segment
             if not orchestration["story_started"]:
-                # Generate initial story
+                # Generate initial story with language
+                language = context.target_language or 'en'
                 segment = await self.story_generator.generate_initial_story(
-                    session.child_profile, context.theme
+                    session.child_profile, context.theme, language
                 )
                 orchestration["story_started"] = True
                 
