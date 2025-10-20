@@ -36,6 +36,21 @@ const translations = {
       stimulate_play: 'Exciting and dynamic adventures'
     },
     
+    // Detected Emotions (from face recognition)
+    detectedEmotions: {
+      happy: 'Happy',
+      sad: 'Sad',
+      angry: 'Angry',
+      surprised: 'Surprised',
+      neutral: 'Neutral',
+      excited: 'Excited',
+      scared: 'Scared',
+      calm: 'Calm',
+      confused: 'Confused',
+      disgusted: 'Disgusted',
+      fear: 'Fear'
+    },
+    
     // Themes
     themes: {
       animals: 'Animals',
@@ -257,6 +272,21 @@ const translations = {
       entertain: 'Historias llenas de aventura y risas',
       calm: 'Cuentos relajantes y tranquilos',
       stimulate_play: 'Aventuras emocionantes y dinámicas'
+    },
+    
+    // Detected Emotions (from face recognition)
+    detectedEmotions: {
+      happy: 'Feliz',
+      sad: 'Triste',
+      angry: 'Enfadado',
+      surprised: 'Sorprendido',
+      neutral: 'Neutral',
+      excited: 'Emocionado',
+      scared: 'Asustado',
+      calm: 'Tranquilo',
+      confused: 'Confundido',
+      disgusted: 'Disgustado',
+      fear: 'Miedo'
     },
     
     // Themes

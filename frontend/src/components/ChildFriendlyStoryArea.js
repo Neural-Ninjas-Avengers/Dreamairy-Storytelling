@@ -23,19 +23,20 @@ const themeBackgrounds = {
 };
 
 // Mapeo de emociones a emojis y colores (incluye todas las emociones de AWS Rekognition)
-const emotionConfig = {
-  happy: { emoji: '😊', label: 'Feliz', color: 'bg-yellow-100 text-yellow-800' },
-  sad: { emoji: '😢', label: 'Triste', color: 'bg-blue-100 text-blue-800' },
-  angry: { emoji: '😠', label: 'Enfadado', color: 'bg-red-100 text-red-800' },
-  surprised: { emoji: '😲', label: 'Sorprendido', color: 'bg-purple-100 text-purple-800' },
-  neutral: { emoji: '😐', label: 'Neutral', color: 'bg-gray-100 text-gray-800' },
-  excited: { emoji: '🤩', label: 'Emocionado', color: 'bg-pink-100 text-pink-800' },
-  scared: { emoji: '😨', label: 'Asustado', color: 'bg-orange-100 text-orange-800' },
-  calm: { emoji: '😌', label: 'Tranquilo', color: 'bg-green-100 text-green-800' },
-  confused: { emoji: '😕', label: 'Confundido', color: 'bg-amber-100 text-amber-800' },
-  disgusted: { emoji: '🤢', label: 'Disgustado', color: 'bg-lime-100 text-lime-800' },
-  fear: { emoji: '😰', label: 'Miedo', color: 'bg-orange-100 text-orange-800' }
-};
+// Labels are now translated via LanguageContext
+const getEmotionConfig = (t) => ({
+  happy: { emoji: '😊', label: t('detectedEmotions.happy'), color: 'bg-yellow-100 text-yellow-800' },
+  sad: { emoji: '😢', label: t('detectedEmotions.sad'), color: 'bg-blue-100 text-blue-800' },
+  angry: { emoji: '😠', label: t('detectedEmotions.angry'), color: 'bg-red-100 text-red-800' },
+  surprised: { emoji: '😲', label: t('detectedEmotions.surprised'), color: 'bg-purple-100 text-purple-800' },
+  neutral: { emoji: '😐', label: t('detectedEmotions.neutral'), color: 'bg-gray-100 text-gray-800' },
+  excited: { emoji: '🤩', label: t('detectedEmotions.excited'), color: 'bg-pink-100 text-pink-800' },
+  scared: { emoji: '😨', label: t('detectedEmotions.scared'), color: 'bg-orange-100 text-orange-800' },
+  calm: { emoji: '😌', label: t('detectedEmotions.calm'), color: 'bg-green-100 text-green-800' },
+  confused: { emoji: '😕', label: t('detectedEmotions.confused'), color: 'bg-amber-100 text-amber-800' },
+  disgusted: { emoji: '🤢', label: t('detectedEmotions.disgusted'), color: 'bg-lime-100 text-lime-800' },
+  fear: { emoji: '😰', label: t('detectedEmotions.fear'), color: 'bg-orange-100 text-orange-800' }
+});
 
 const ChildFriendlyStoryArea = ({
   storyService,
@@ -628,14 +629,14 @@ const ChildFriendlyStoryArea = ({
                   <p className="text-xs text-gray-600">
                     {storySegments.length > 0 ? `${t('chapter')} ${storySegments.length}` : t('readyToBegin')}
                   </p>
-                  {detectedEmotion && emotionConfig[detectedEmotion] && (
+                  {detectedEmotion && getEmotionConfig(t)[detectedEmotion] && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${emotionConfig[detectedEmotion].color}`}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getEmotionConfig(t)[detectedEmotion].color}`}
                     >
-                      <span>{emotionConfig[detectedEmotion].emoji}</span>
-                      <span>{emotionConfig[detectedEmotion].label}</span>
+                      <span>{getEmotionConfig(t)[detectedEmotion].emoji}</span>
+                      <span>{getEmotionConfig(t)[detectedEmotion].label}</span>
                     </motion.div>
                   )}
                 </div>
