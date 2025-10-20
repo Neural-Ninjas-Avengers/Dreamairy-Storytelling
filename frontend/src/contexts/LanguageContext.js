@@ -158,6 +158,10 @@ const translations = {
     // Language Selector
     selectLanguage: 'Select Language',
     
+    // Admin Access
+    adminPanel: 'Admin Panel',
+    configureCredentials: 'Configure AWS Credentials',
+    
     // Common
     loading: 'Loading...',
     error: 'Error',
@@ -395,6 +399,10 @@ const translations = {
     
     // Language Selector
     selectLanguage: 'Seleccionar Idioma',
+    
+    // Admin Access
+    adminPanel: 'Panel de Administración',
+    configureCredentials: 'Configurar Credenciales AWS',
     
     // Common
     loading: 'Cargando...',

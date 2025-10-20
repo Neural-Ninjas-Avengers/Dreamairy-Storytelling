@@ -111,6 +111,22 @@ const ChildFriendlyWelcomeScreen = ({
         >
           {/* Header con logo y progreso */}
           <div className="bg-white/60 backdrop-blur-sm p-4 text-center relative overflow-visible">
+            {/* Admin Button - Top Left of Card */}
+            <div className="absolute top-4 left-4" style={{ zIndex: 10000 }}>
+              <motion.a
+                href="/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm font-medium"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title={t('configureCredentials')}
+              >
+                <span className="text-lg">⚙️</span>
+                <span className="hidden sm:inline">{t('adminPanel')}</span>
+              </motion.a>
+            </div>
+            
             {/* Language Selector - Top Right of Card */}
             <div className="absolute top-4 right-4" style={{ zIndex: 10000 }}>
               <LanguageSelector />
